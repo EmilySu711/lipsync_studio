@@ -1,0 +1,4775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>口型同步工具</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700&family=Sawarabi+Mincho&family=Rajdhani:wght@300;400;500;600&family=Noto+Sans:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161e;
+    --surface2: #1e1e2a;
+    --surface3: #252535;
+    --accent: #c084fc;
+    --accent2: #818cf8;
+    --accent3: #34d399;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --border: #2a2a3e;
+    --danger: #f87171;
+    --warning: #fbbf24;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header span {
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Steps layout */
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .step:hover { border-color: #3a3a5e; }
+
+  .step.active { border-color: var(--accent2); }
+
+  .step-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .step h2 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  /* Upload zones */
+  .upload-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .upload-grid.vowels {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .upload-grid.blink {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .upload-zone:hover {
+    border-color: var(--accent2);
+    background: rgba(129, 140, 248, 0.05);
+  }
+
+  .upload-zone.filled {
+    border-style: solid;
+    border-color: var(--accent3);
+    background: rgba(52, 211, 153, 0.05);
+  }
+
+  .upload-zone .label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+
+  .upload-zone .sublabel {
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .upload-zone .preview-img {
+    width: 100%;
+    height: 52px;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-zone .check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 14px;
+    height: 14px;
+    background: var(--accent3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: #0e0e12;
+    font-weight: 700;
+  }
+
+  .upload-zone .zone-clear {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: rgba(248,113,113,0.85);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 10;
+    line-height: 1;
+  }
+
+  .upload-zone.filled:hover .zone-clear { display: flex; }
+
+  /* Audio upload */
+  .audio-upload {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .audio-upload:hover {
+    border-color: var(--accent2);
+    background: rgba(129, 140, 248, 0.05);
+  }
+
+  .audio-upload.filled {
+    border-style: solid;
+    border-color: var(--accent3);
+  }
+
+  .audio-upload input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .audio-icon {
+    font-size: 20px;
+  }
+
+  .audio-info { flex: 1; }
+  .audio-info .name { font-size: 13px; color: var(--text); }
+  .audio-info .hint { font-size: 11px; color: var(--text3); }
+
+  /* Romaji input */
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Rajdhani', monospace;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    resize: vertical;
+    min-height: 70px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  textarea:focus { border-color: var(--accent2); }
+  textarea::placeholder { color: var(--text3); }
+
+  /* Full width step */
+  .step.full {
+    grid-column: 1 / -1;
+  }
+
+  /* Generate button */
+  .btn-generate {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+
+  .btn-generate:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+
+  .btn-generate:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Timeline section */
+  .timeline-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: none;
+  }
+
+  .timeline-section.visible { display: block; }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .timeline-header h2 {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .timeline-controls {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-small {
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-small:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .btn-small.primary {
+    background: rgba(192, 132, 252, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Audio waveform + timeline */
+  .waveform-container {
+    position: relative;
+    background: var(--surface2);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    height: 60px;
+  }
+
+  #waveformCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  #playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    pointer-events: none;
+    left: 0;
+    transition: left 0.05s linear;
+  }
+
+  /* Timeline tracks */
+  .timeline-tracks {
+    position: relative;
+    background: var(--surface2);
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-height: 120px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+
+  #timelineCanvas {
+    display: block;
+    height: 120px;
+  }
+
+  .timeline-hint {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  /* Preview + export */
+  .preview-export {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .preview-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: none;
+  }
+
+  .preview-area.visible { display: block; }
+
+  .preview-area h2 {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  #previewCanvas {
+    display: block;
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: var(--surface2);
+  }
+
+  .preview-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+  }
+
+  .btn-play {
+    padding: 7px 20px;
+    background: rgba(52, 211, 153, 0.15);
+    border: 1px solid var(--accent3);
+    border-radius: 6px;
+    color: var(--accent3);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-play:hover {
+    background: rgba(52, 211, 153, 0.25);
+  }
+
+  /* Preview seekbar */
+  .seekbar-wrap {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #seekbar {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface3);
+    outline: none;
+    cursor: pointer;
+    accent-color: var(--accent);
+    transition: height 0.1s;
+  }
+  #seekbar:hover { height: 6px; }
+  #seekbar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(192,132,252,0.5);
+  }
+  #seekbar::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+  .seekbar-time {
+    font-family: 'Rajdhani', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: right;
+  }
+
+  #timeDisplay {
+    font-family: 'Rajdhani', monospace;
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+
+  .export-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 200px;
+    display: none;
+  }
+
+  .export-panel.visible { display: block; }
+
+  .export-panel h2 {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .export-option {
+    margin-bottom: 12px;
+  }
+
+  .export-option label {
+    font-size: 12px;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .export-option select,
+  .export-option input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .export-option select:focus,
+  .export-option input:focus {
+    border-color: var(--accent2);
+  }
+
+  .btn-export {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .btn-export:hover { opacity: 0.85; }
+  .btn-export:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Progress */
+  #exportProgress {
+    display: none;
+    margin-top: 10px;
+  }
+
+  .progress-bar-bg {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 4px;
+    transition: width 0.1s;
+    width: 0%;
+  }
+
+  #progressText {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    color: var(--text);
+    transition: transform 0.3s;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.error { border-color: var(--danger); color: var(--danger); }
+  #toast.success { border-color: var(--accent3); color: var(--accent3); }
+  #toast.warning { border-color: var(--warning); color: var(--warning); max-width: 480px; white-space: pre-line; text-align:left; line-height:1.6; }
+
+  /* Selected segment indicator */
+  .selected-info {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .selected-info.visible { display: flex; }
+
+  .seg-label {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 30px;
+  }
+
+  .seg-time {
+    color: var(--text2);
+  }
+
+  .seg-input-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .seg-input-group input {
+    width: 70px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--text);
+    font-family: 'Rajdhani', monospace;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .seg-input-group input:focus { border-color: var(--accent2); }
+  .seg-input-group span { font-size: 11px; color: var(--text3); }
+
+  .btn-seg-delete {
+    padding: 4px 10px;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: 4px;
+    color: var(--danger);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+
+  /* ── Language / Multi-character toggle ── */
+  .toggle-row {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .toggle-btn {
+    flex: 1; padding: 7px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2); font-family: 'Rajdhani', sans-serif;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .toggle-btn.active {
+    background: rgba(129,140,248,0.15);
+    border-color: var(--accent2); color: var(--accent2);
+  }
+
+  /* ── Subtitle panel ── */
+  .subtitle-panel {
+    margin-top: 14px; padding: 12px;
+    background: var(--surface2); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .subtitle-panel h3 {
+    font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 10px;
+  }
+  .subtitle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+  .subtitle-row textarea {
+    min-height: 52px; font-size: 12px; padding: 6px 8px; resize: vertical;
+  }
+  .subtitle-style-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px;
+  }
+  .subtitle-style-grid label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 3px; }
+  .subtitle-style-grid select,
+  .subtitle-style-grid input[type=number],
+  .subtitle-style-grid input[type=color] {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; padding: 5px 7px; color: var(--text); font-size: 12px;
+    outline: none;
+  }
+  .subtitle-style-grid input[type=color] { height: 32px; padding: 2px 4px; cursor: pointer; }
+  .subtitle-pos-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .subtitle-pos-row label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .subtitle-pos-row input[type=range] { flex: 1; accent-color: var(--accent2); cursor: pointer; }
+  .subtitle-pos-val { font-family: Rajdhani,monospace; font-size: 12px; color: var(--accent2); min-width: 36px; }
+
+  /* ── Multi-character panel ── */
+  .multi-char-panel {
+    margin-top: 14px; padding: 12px;
+    background: var(--surface2); border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .multi-char-panel h3 { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; }
+  .char-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .char-tab {
+    padding: 5px 14px; border-radius: 5px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text3); font-size: 12px; font-family: Rajdhani,sans-serif;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .char-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(192,132,252,0.1); }
+  .char-images-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+
+  /* emotion track */
+  #emotionTrackContainer { min-height: 52px; }
+
+  /* subtitle track */
+  .sub-track-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border-radius: 6px;
+    padding: 5px 10px; font-size: 12px;
+  }
+  .sub-track-item input[type=checkbox] { accent-color: var(--accent2); cursor: pointer; width:14px; height:14px; flex-shrink:0; }
+  .sub-track-item .sub-time { font-family: Rajdhani,monospace; font-size:11px; color:var(--text3); min-width:90px; }
+  .sub-track-item .sub-orig { color:var(--text); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sub-track-item .sub-trans { color:var(--text3); font-size:11px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sub-track-item.muted { opacity:0.4; }
+
+  header .btn-small { padding: 6px 14px; font-size: 12px; }
+  header label.btn-small { display: inline-block; }
+
+  /* Welcome modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 560px; width: 100%;
+    padding: 32px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 600;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .modal-subtitle {
+    font-size: 12px; color: var(--text3);
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+  }
+  .modal-section {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border-left: 3px solid var(--border);
+  }
+  .modal-section.accent { border-left-color: var(--accent); }
+  .modal-section.warning { border-left-color: var(--warning); }
+  .modal-section.green { border-left-color: var(--accent3); }
+  .modal-section h3 {
+    font-size: 12px; font-weight: 600;
+    color: var(--text2); margin-bottom: 6px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .modal-section p, .modal-section li {
+    font-size: 12px; color: var(--text3); line-height: 1.7;
+  }
+  .modal-section ul { padding-left: 14px; }
+  .modal-author {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 4px;
+  }
+  .modal-author a {
+    color: var(--accent); text-decoration: none; font-size: 12px;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid rgba(192,132,252,0.3);
+    background: rgba(192,132,252,0.08);
+    transition: all 0.15s;
+  }
+  .modal-author a:hover { background: rgba(192,132,252,0.2); }
+  .modal-confirm-btn {
+    width: 100%; margin-top: 20px;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 10px;
+    color: white; font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 600; letter-spacing: 0.15em;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .modal-confirm-btn:hover { opacity: 0.85; }
+
+  /* EN phoneme tooltip */
+  .en-phoneme-zone { position: relative; }
+  .en-phoneme-zone::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface3);
+    color: var(--text);
+    font-size: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    white-space: pre;
+    width: max-content;
+    max-width: 180px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    line-height: 1.5;
+  }
+  .en-phoneme-zone:hover::after { opacity: 1; }
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface3) transparent;
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+</style>
+</head>
+<body>
+<!-- Welcome / Disclaimer Modal -->
+<div class="modal-overlay" id="welcomeModal">
+  <div class="modal-box">
+    <div class="modal-title">LIPSYNC STUDIO</div>
+    <div class="modal-subtitle">口型同步工具 · 免费开源 · 请阅读以下说明后使用</div>
+
+    <div class="modal-section accent">
+      <h3>🎬 这个工具是什么</h3>
+      <p>一个在浏览器里运行的口型同步制作工具，适用于同人视频、二次元角色配音等创作场景。</p>
+      <p style="margin-top:6px;">你需要准备：角色口型图片（idle + aiueo + 眨眼帧）、配音音频、罗马音或英语文本，即可自动生成对口型动画并导出 WebM 视频。</p>
+    </div>
+
+    <div class="modal-section warning">
+      <h3>⚠️ 使用须知与免责声明</h3>
+      <ul>
+        <li>本工具仅供个人创作使用，请确保所使用的角色图片、音频等素材符合原作版权规定。</li>
+        <li>本工具不对使用者生产的任何内容及其传播所产生的一切影响负责，内容责任由使用者自行承担。</li>
+        <li>请勿将本工具用于侵害他人权益、散布有害信息或任何违法用途。</li>
+        <li>本工具在浏览器本地运行，不上传任何数据，所有内容仅存在于你自己的设备上。</li>
+      </ul>
+    </div>
+
+    <div class="modal-section green">
+      <h3>🌸 关于作者</h3>
+      <p style="margin-bottom:8px;">这个工具由一个二次元同人创作者手搓，主要用来给自己的推画对口型视频。如果好用请多支持！</p>
+      <div class="modal-author">
+        <a href="https://www.xiaohongshu.com/user/profile/649febf1000000000a020352" target="_blank">小红书 · Ronronner</a>
+        <a href="https://space.bilibili.com/372684842" target="_blank">Bilibili · _XwQ__</a>
+      </div>
+      <p style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.8;">
+        顺便安利一下作者正在制作中的 Hetalia 同人 RPG·视觉小说
+        <strong style="color:var(--accent);">《愚人塔》</strong>——
+        目前 Bilibili 有实况视频更新中，线索还少所以剧情还没完全展开，
+        但如果你是 Hetalia 粉丝欢迎来看看 🙏
+      </p>
+      <p style="margin-top:8px;font-size:10px;color:var(--text3);opacity:0.6;">本工具的开发有 AI（Claude by Anthropic）辅助。</p>
+    </div>
+
+    <button class="modal-confirm-btn" onclick="closeWelcomeModal()">
+      我已阅读，开始使用 →
+    </button>
+  </div>
+</div>
+
+<div class="app">
+
+  <header>
+    <h1>LIPSYNC STUDIO</h1>
+    <span>口型同步工具 · WebM导出</span>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn-small" onclick="saveProject()" title="保存项目（包含所有图片、音频、时间轴）">💾 保存项目</button>
+      <label class="btn-small" style="cursor:pointer;" title="读取已保存的项目文件">
+        📂 读取项目
+        <input type="file" accept=".lipsync" onchange="loadProject(this)" style="display:none;">
+      </label>
+    </div>
+  </header>
+
+  <div class="steps">
+
+    <!-- Step 1: Images -->
+    <div class="step" id="stepImages">
+      <div class="step-num">Step 01</div>
+      <h2>上传口型图片</h2>
+
+      <!-- Multi-character toggle -->
+      <div class="toggle-row" style="margin-bottom:12px;">
+        <div class="toggle-btn active" id="btnSingleChar" onclick="setCharMode('single')">单角色</div>
+        <div class="toggle-btn" id="btnMultiChar" onclick="setCharMode('multi')">多角色</div>
+      </div>
+
+      <!-- Single-character image upload (always shown, used by single mode) -->
+      <div id="singleCharImages">
+        <!-- Folder import (collapsible) -->
+        <div style="margin-bottom:12px;">
+          <div onclick="toggleFolderImport()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:7px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--text2);font-weight:500;">📁 文件夹批量导入</span>
+            <span id="folderImportArrow" style="color:var(--text3);font-size:12px;transition:transform 0.2s;">▼</span>
+          </div>
+          <div id="folderImportBody" style="display:none;padding:10px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.8;">
+              文件按以下名称命名，扩展名 .png/.jpg/.webp 均可，大小写不限：<br>
+              <span style="color:var(--text2);">idle · a · i · u · e · o · open · blink1 · blink2 · blink3</span><br>
+              <span id="enImportHint" style="display:none;color:var(--accent2);">英语额外口型：schwa · ae · uu · oo · w · f · th · m</span>
+            </div>
+            <label class="btn-small primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              🖼 选择口型文件夹
+              <input type="file" accept="image/*" webkitdirectory multiple
+                style="display:none;" onchange="importFolder(this,'mouth')">
+            </label>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">待机帧（闭嘴、无口型时显示）</p>
+        <div class="upload-grid" style="grid-template-columns:1fr;margin-bottom:12px;">
+          <div class="upload-zone" id="zone-idle">
+            <input type="file" accept="image/*" onchange="handleImage('idle', this)">
+            <div class="label">IDLE</div>
+            <div class="sublabel">待机 / 闭嘴</div>
+          </div>
+        </div>
+
+        <!-- Universal mode: only needs OPEN frame -->
+        <div id="universalOpenZone" style="display:none;margin-bottom:12px;">
+          <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">张嘴帧（有声音时显示）</p>
+          <div class="upload-grid" style="grid-template-columns:1fr;">
+            <div class="upload-zone" id="zone-open">
+              <input type="file" accept="image/*" onchange="handleImage('open', this)">
+              <div class="label">OPEN</div>
+              <div class="sublabel">张嘴 / 说话</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">五个元音口型</p>
+        <div id="vowelSection">
+        <div class="upload-grid vowels" style="margin-bottom:12px;">
+          <div class="upload-zone" id="zone-a"><input type="file" accept="image/*" onchange="handleImage('a', this)"><div class="label">A</div><div class="sublabel" id="sub-a">あ</div></div>
+          <div class="upload-zone" id="zone-i"><input type="file" accept="image/*" onchange="handleImage('i', this)"><div class="label">I</div><div class="sublabel" id="sub-i">い</div></div>
+          <div class="upload-zone" id="zone-u"><input type="file" accept="image/*" onchange="handleImage('u', this)"><div class="label">U</div><div class="sublabel" id="sub-u">う</div></div>
+          <div class="upload-zone" id="zone-e"><input type="file" accept="image/*" onchange="handleImage('e', this)"><div class="label">E</div><div class="sublabel" id="sub-e">え</div></div>
+          <div class="upload-zone" id="zone-o"><input type="file" accept="image/*" onchange="handleImage('o', this)"><div class="label">O</div><div class="sublabel" id="sub-o">お</div></div>
+        </div>
+        </div><!-- end vowelSection -->
+
+        <!-- English extra phoneme mouth shapes (English mode only) -->
+        <div id="enPhonemeSection" style="display:none;">
+          <p style="font-size:11px;color:var(--text3);margin-bottom:6px;">英语额外口型 <span style="color:var(--text3);font-size:10px;">（可选，未上传则使用最接近的基础口型）</span></p>
+          <div class="upload-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px;">
+            <div class="upload-zone en-phoneme-zone" id="zone-schwa"
+              data-tip="/ə/ about / the / a&#10;嘴微开放松，最中性的英语元音">
+              <input type="file" accept="image/*" onchange="handleImage('schwa', this)">
+              <div class="label" style="font-size:12px;">ə</div>
+              <div class="sublabel" style="font-size:9px;">about</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-ae"
+              data-tip="/æ/ cat / bad / have&#10;嘴大张横向拉伸，比a更扁">
+              <input type="file" accept="image/*" onchange="handleImage('ae', this)">
+              <div class="label" style="font-size:12px;">æ</div>
+              <div class="sublabel" style="font-size:9px;">cat</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-uu"
+              data-tip="/ʊ/ book / good / put&#10;嘴小圆，比u更松">
+              <input type="file" accept="image/*" onchange="handleImage('uu', this)">
+              <div class="label" style="font-size:12px;">ʊ</div>
+              <div class="sublabel" style="font-size:9px;">book</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-oo"
+              data-tip="/ɔ/ law / thought / call&#10;嘴圆大开">
+              <input type="file" accept="image/*" onchange="handleImage('oo', this)">
+              <div class="label" style="font-size:12px;">ɔ</div>
+              <div class="sublabel" style="font-size:9px;">law</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-w"
+              data-tip="/w/ we / want / wood&#10;嘴极度撅圆">
+              <input type="file" accept="image/*" onchange="handleImage('w', this)">
+              <div class="label" style="font-size:12px;">w</div>
+              <div class="sublabel" style="font-size:9px;">we</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-f"
+              data-tip="/f/ fish / off / phone&#10;上牙咬下唇">
+              <input type="file" accept="image/*" onchange="handleImage('f', this)">
+              <div class="label" style="font-size:12px;">f</div>
+              <div class="sublabel" style="font-size:9px;">fish</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-th"
+              data-tip="/th/ this / think / the&#10;舌尖伸出上下齿之间">
+              <input type="file" accept="image/*" onchange="handleImage('th', this)">
+              <div class="label" style="font-size:12px;">th</div>
+              <div class="sublabel" style="font-size:9px;">this</div>
+            </div>
+            <div class="upload-zone en-phoneme-zone" id="zone-m"
+              data-tip="/m/ mom / time / some&#10;嘴完全闭合，比idle更紧">
+              <input type="file" accept="image/*" onchange="handleImage('m', this)">
+              <div class="label" style="font-size:12px;">m</div>
+              <div class="sublabel" style="font-size:9px;">mom</div>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">眨眼帧（按顺序上传）</p>
+        <div class="upload-grid blink" id="blinkZones">
+          <div class="upload-zone" id="zone-blink-0"><input type="file" accept="image/*" onchange="handleBlink(0, this)"><div class="label">B1</div><div class="sublabel">眨眼帧1</div></div>
+          <div class="upload-zone" id="zone-blink-1"><input type="file" accept="image/*" onchange="handleBlink(1, this)"><div class="label">B2</div><div class="sublabel">眨眼帧2</div></div>
+          <div class="upload-zone" id="zone-blink-2"><input type="file" accept="image/*" onchange="handleBlink(2, this)"><div class="label">B3</div><div class="sublabel">眨眼帧3</div></div>
+        </div>
+      </div>
+
+      <!-- Emotion image sets (optional, collapsible) -->
+      <div style="margin-top:14px;" id="emotionImageSection">
+        <div onclick="toggleEmotionPanel()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+          <span style="font-size:12px;color:var(--text2);font-weight:500;">😊 情绪套图 <span style="color:var(--text3);font-weight:300;">（可选，未上传的情绪使用默认套图）</span></span>
+          <span id="emotionPanelArrow" style="color:var(--text3);font-size:12px;transition:transform 0.2s;">▼</span>
+        </div>
+        <div id="emotionPanelBody" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:0 0 8px 8px;padding:12px;">
+          <!-- Character selector (only shown in multi-char mode) -->
+          <div id="emotionCharSelector" style="display:none;margin-bottom:10px;">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">选择角色</div>
+            <div style="display:flex;gap:6px;">
+              <div class="char-tab active" id="echarTab-1" onclick="switchEmotionCharTab(1)">角色 1</div>
+              <div class="char-tab" id="echarTab-2" onclick="switchEmotionCharTab(2)">角色 2</div>
+            </div>
+          </div>
+          <!-- Emotion tabs -->
+          <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+            <div class="char-tab active" id="etab-happy" onclick="switchEmotionTab('happy')">😊 开心</div>
+            <div class="char-tab" id="etab-sad" onclick="switchEmotionTab('sad')">😢 难过</div>
+            <div class="char-tab" id="etab-bored" onclick="switchEmotionTab('bored')">😑 无聊</div>
+            <div class="char-tab" id="etab-nervous" onclick="switchEmotionTab('nervous')">😰 紧张</div>
+            <div class="char-tab" id="etab-custom" onclick="switchEmotionTab('custom')" style="display:flex;align-items:center;gap:4px;">
+              ✨ <input id="customEmotionName" type="text" value="自定义" maxlength="8"
+                style="width:52px;background:transparent;border:none;color:inherit;font:inherit;outline:none;cursor:text;"
+                onclick="event.stopPropagation()"
+                onchange="state.customEmotionName=this.value; renderEmotionTrack();">
+            </div>
+          </div>
+          <!-- Per-emotion upload grid (rebuilt dynamically) -->
+          <div id="emotionGridContainer"></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:8px;">每种情绪需上传：IDLE · A · I · U · E · O · 眨眼（B1/B2/B3可选）</div>
+          <label class="btn-small" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-top:8px;">
+            📁 导入此情绪文件夹
+            <input type="file" accept="image/*" webkitdirectory multiple
+              style="display:none;" onchange="importEmotionFolder(this)">
+          </label>
+
+          <!-- Per-emotion animation params -->
+          <div id="emotionAnimPanel" style="margin-top:10px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:8px;">动画设置 <span style="color:var(--text3);font-weight:300;font-size:10px;">（与情绪套图独立，作用范围由情绪轨控制）</span></div>
+            <div id="emotionAnimControls"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticker upload panel (optional, collapsible) -->
+      <div style="margin-top:14px;" id="stickerSection">
+        <div onclick="toggleStickerPanel()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+          <span style="font-size:12px;color:var(--text2);font-weight:500;">✨ 表情戳章 <span style="color:var(--text3);font-weight:300;">（可选，手动插入时间轴）</span></span>
+          <span id="stickerPanelArrow" style="color:var(--text3);font-size:12px;transition:transform 0.2s;">▼</span>
+        </div>
+        <div id="stickerPanelBody" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:0 0 8px 8px;padding:12px;">
+          <div id="stickerUploadContainer"></div>
+        </div>
+      </div>
+
+      <!-- Multi-character image upload (hidden by default) -->
+      <div id="multiCharImages" style="display:none;">
+        <div class="multi-char-panel">
+          <h3>多角色图片 <span style="color:var(--text3);font-weight:300;">（每个角色各自上传一套）</span></h3>
+          <div class="char-tabs">
+            <div class="char-tab active" onclick="switchCharTab(1)">角色 1</div>
+            <div class="char-tab" onclick="switchCharTab(2)">角色 2</div>
+          </div>
+          <!-- char 1 images -->
+          <div id="charImgPanel-1">
+            <label class="btn-small" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;">
+              📁 导入角色1文件夹
+              <input type="file" accept="image/*" webkitdirectory multiple
+                style="display:none;" onchange="importCharFolder(this,1)">
+            </label>
+            <div class="char-images-grid">
+              <div class="upload-zone" id="zone-c1-idle"><input type="file" accept="image/*" onchange="handleCharImage(1,'idle',this)"><div class="label" style="font-size:10px;">IDLE</div></div>
+              <!-- vowels: hidden in universal mode -->
+              <div id="c1-vowels" style="display:contents;">
+                <div class="upload-zone" id="zone-c1-a"><input type="file" accept="image/*" onchange="handleCharImage(1,'a',this)"><div class="label">A</div></div>
+                <div class="upload-zone" id="zone-c1-i"><input type="file" accept="image/*" onchange="handleCharImage(1,'i',this)"><div class="label">I</div></div>
+                <div class="upload-zone" id="zone-c1-u"><input type="file" accept="image/*" onchange="handleCharImage(1,'u',this)"><div class="label">U</div></div>
+                <div class="upload-zone" id="zone-c1-e"><input type="file" accept="image/*" onchange="handleCharImage(1,'e',this)"><div class="label">E</div></div>
+                <div class="upload-zone" id="zone-c1-o"><input type="file" accept="image/*" onchange="handleCharImage(1,'o',this)"><div class="label">O</div></div>
+              </div>
+              <div class="upload-zone" id="zone-c1-blink"><input type="file" accept="image/*" onchange="handleCharImage(1,'blink',this)"><div class="label" style="font-size:10px;">BLINK</div></div>
+              <!-- open: only in universal mode -->
+              <div class="upload-zone" id="zone-c1-open" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'open',this)"><div class="label" style="font-size:10px;">OPEN</div></div>
+            </div>
+          </div>
+          <!-- char 2 images -->
+          <div id="charImgPanel-2" style="display:none;">
+            <label class="btn-small" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;">
+              📁 导入角色2文件夹
+              <input type="file" accept="image/*" webkitdirectory multiple
+                style="display:none;" onchange="importCharFolder(this,2)">
+            </label>
+            <div class="char-images-grid">
+              <div class="upload-zone" id="zone-c2-idle"><input type="file" accept="image/*" onchange="handleCharImage(2,'idle',this)"><div class="label" style="font-size:10px;">IDLE</div></div>
+              <div id="c2-vowels" style="display:contents;">
+                <div class="upload-zone" id="zone-c2-a"><input type="file" accept="image/*" onchange="handleCharImage(2,'a',this)"><div class="label">A</div></div>
+                <div class="upload-zone" id="zone-c2-i"><input type="file" accept="image/*" onchange="handleCharImage(2,'i',this)"><div class="label">I</div></div>
+                <div class="upload-zone" id="zone-c2-u"><input type="file" accept="image/*" onchange="handleCharImage(2,'u',this)"><div class="label">U</div></div>
+                <div class="upload-zone" id="zone-c2-e"><input type="file" accept="image/*" onchange="handleCharImage(2,'e',this)"><div class="label">E</div></div>
+                <div class="upload-zone" id="zone-c2-o"><input type="file" accept="image/*" onchange="handleCharImage(2,'o',this)"><div class="label">O</div></div>
+              </div>
+              <div class="upload-zone" id="zone-c2-blink"><input type="file" accept="image/*" onchange="handleCharImage(2,'blink',this)"><div class="label" style="font-size:10px;">BLINK</div></div>
+              <div class="upload-zone" id="zone-c2-open" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'open',this)"><div class="label" style="font-size:10px;">OPEN</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-character layout settings -->
+        <div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:10px;">角色位置与图层设置</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Char 1 -->
+            <div>
+              <div style="font-size:11px;color:var(--accent);margin-bottom:6px;">角色 1</div>
+              <div class="subtitle-pos-row">
+                <label>X</label>
+                <input type="range" id="c1x" min="0" max="100" value="30"
+                  oninput="updateCharLayout(1,'xPct',this.value); document.getElementById('c1xv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="c1xv">30%</span>
+              </div>
+              <div class="subtitle-pos-row">
+                <label>Y</label>
+                <input type="range" id="c1y" min="0" max="100" value="50"
+                  oninput="updateCharLayout(1,'yPct',this.value); document.getElementById('c1yv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="c1yv">50%</span>
+              </div>
+              <div class="subtitle-pos-row">
+                <label>大小</label>
+                <input type="range" id="c1s" min="10" max="200" value="100"
+                  oninput="updateCharLayout(1,'scale',this.value); document.getElementById('c1sv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="c1sv">100%</span>
+              </div>
+              <div class="subtitle-pos-row">
+                <label>图层</label>
+                <input type="range" id="c1l" min="1" max="10" value="1" step="1"
+                  oninput="updateCharLayout(1,'layer',this.value); document.getElementById('c1lv').textContent=this.value">
+                <span class="subtitle-pos-val" id="c1lv">1</span>
+              </div>
+            </div>
+            <!-- Char 2 -->
+            <div>
+              <div style="font-size:11px;color:var(--accent2);margin-bottom:6px;">角色 2</div>
+              <div class="subtitle-pos-row">
+                <label>X</label>
+                <input type="range" id="c2x" min="0" max="100" value="70"
+                  oninput="updateCharLayout(2,'xPct',this.value); document.getElementById('c2xv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="c2xv">70%</span>
+              </div>
+              <div class="subtitle-pos-row">
+                <label>Y</label>
+                <input type="range" id="c2y" min="0" max="100" value="50"
+                  oninput="updateCharLayout(2,'yPct',this.value); document.getElementById('c2yv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="c2yv">50%</span>
+              </div>
+              <div class="subtitle-pos-row">
+                <label>大小</label>
+                <input type="range" id="c2s" min="10" max="200" value="100"
+                  oninput="updateCharLayout(2,'scale',this.value); document.getElementById('c2sv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="c2sv">100%</span>
+              </div>
+              <div class="subtitle-pos-row">
+                <label>图层</label>
+                <input type="range" id="c2l" min="1" max="10" value="2" step="1"
+                  oninput="updateCharLayout(2,'layer',this.value); document.getElementById('c2lv').textContent=this.value">
+                <span class="subtitle-pos-val" id="c2lv">2</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn-small" onclick="swapCharLayers()" style="margin-top:8px;width:100%;text-align:center;">
+            ⇅ 互换图层顺序
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Audio + Romaji -->
+    <div class="step" id="stepAudio">
+      <div class="step-num">Step 02</div>
+      <h2>上传音频 &amp; 输入文本</h2>
+
+      <!-- Language toggle -->
+      <div class="toggle-row">
+        <div class="toggle-btn active" id="btnLangJP" onclick="setLang('jp')">🇯🇵 日语</div>
+        <div class="toggle-btn" id="btnLangEN" onclick="setLang('en')">🇺🇸 英语</div>
+        <div class="toggle-btn" id="btnLangUNI" onclick="setLang('universal')">🌐 通用</div>
+      </div>
+
+      <div class="audio-upload" id="audioUpload">
+        <input type="file" accept="audio/*" onchange="handleAudio(this)">
+        <div class="audio-icon">🎵</div>
+        <div class="audio-info">
+          <div class="name" id="audioName">点击上传音频文件</div>
+          <div class="hint">支持 MP3, WAV, OGG, M4A 等格式 · 建议纯人声/念白，唱歌可能导致口型乱飞</div>
+        </div>
+      </div>
+
+      <audio id="audioPlayer" style="display:none;"></audio>
+
+      <div id="romajiSection">
+      <p style="font-size:11px;color:var(--text3);margin-bottom:6px;" id="romajiLabel">
+        罗马音文本
+        <span style="color:var(--text3);font-size:10px;margin-left:6px;">用空格分隔每个音节</span>
+      </p>
+      <textarea id="romajiInput" placeholder="例：ko n ni chi wa wa ta shi no na ma e wa...&#10;&#10;每个音节用空格隔开即可，工具会自动识别其中的元音(a/i/u/e/o)"></textarea>
+
+      <div id="langHintJP" style="margin-top:10px;padding:10px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.7;">
+        <strong style="color:var(--text2);">罗马音规则提示（日语）</strong><br>
+        a → あ行 &nbsp;|&nbsp; i → い行 &nbsp;|&nbsp; u → う行 &nbsp;|&nbsp; e → え行 &nbsp;|&nbsp; o → お行<br>
+        n / nn → 闭嘴 &nbsp;|&nbsp; 其他辅音结尾 → 对应元音口型
+      </div>
+      <div id="langHintEN" style="display:none;margin-top:10px;padding:10px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.8;">
+        <strong style="color:var(--text2);">英语输入说明</strong><br>
+        <strong style="color:var(--text2);">方式一：普通英文</strong> 直接输入单词，工具识别末尾元音。例：<em>hello how are you today</em><br>
+        <strong style="color:var(--text2);">方式二：Arpabet 音标</strong> 每个音素用空格分隔，工具自动识别。例：<em>HH AH0 L OW1 HH AW1 AA1 R Y UW0 T AH0 D EY1</em><br>
+        可将文本发给 AI 转换：<span style="color:var(--text2);">"请将以下英文转为 CMU Arpabet 格式，每个音素空格分隔，单词间加 | ，只输出结果"</span>
+      </div>
+
+      <!-- Multi-char romaji hint -->
+      <div id="multiCharHint" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(192,132,252,0.08);border:1px solid rgba(192,132,252,0.3);border-radius:6px;font-size:11px;color:var(--accent);line-height:1.7;">
+        ⚠️ 多角色模式：每句台词前用 <strong>[角色编号]</strong> 标注，换行分隔。<br>
+        可在编号后加 <strong>:jp</strong> 或 <strong>:en</strong> 为该角色单独指定语言（不写则沿用全局设置）。<br>
+        例（混合语言）：<br>
+        <span style="color:var(--text2);">[1:jp]ko n ni chi wa<br>[2:en]hello how are you</span><br>
+        例（同语言）：<br>
+        <span style="color:var(--text2);">[1]ko n ni chi wa<br>[2]a ri ga to u</span>
+      </div>
+      </div><!-- end romajiSection -->
+
+      <div style="margin-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <p style="font-size:11px;color:var(--text3);">👁 静音多久触发眨眼</p>
+          <span id="blinkThresholdLabel" style="font-family:Rajdhani,monospace;font-size:13px;color:var(--accent);font-weight:600;">1.0 秒</span>
+        </div>
+        <input type="range" id="blinkThreshold" min="0.3" max="4.0" step="0.1" value="1.0"
+          oninput="document.getElementById('blinkThresholdLabel').textContent = parseFloat(this.value).toFixed(1) + ' 秒'"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px;">
+          <span>0.3s（频繁）</span><span>4.0s（几乎不眨）</span>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <p style="font-size:11px;color:var(--text3);">🎙 声音识别灵敏度</p>
+          <span id="voiceThresholdLabel" style="font-family:Rajdhani,monospace;font-size:13px;color:var(--accent2);font-weight:600;">中（×8%）</span>
+        </div>
+        <input type="range" id="voiceThreshold" min="1" max="10" step="1" value="5"
+          oninput="updateVoiceThresholdLabel(this.value)"
+          style="width:100%;accent-color:var(--accent2);cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px;">
+          <span>1（捕捉极弱声音）</span><span>10（只识别很响的声音）</span>
+        </div>
+      </div>
+
+      <!-- Subtitle panel (collapsible, optional) -->
+      <div style="margin-top:14px;">
+        <div onclick="toggleSubtitlePanel()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+          <span style="font-size:12px;color:var(--text2);font-weight:500;">🗨 字幕设置 <span style="color:var(--text3);font-weight:300;">（可选）</span></span>
+          <span id="subtitlePanelArrow" style="color:var(--text3);font-size:12px;transition:transform 0.2s;">▼</span>
+        </div>
+        <div id="subtitlePanelBody" style="display:none;">
+      <div class="subtitle-panel" style="margin-top:0;border-top-left-radius:0;border-top-right-radius:0;border-top:none;">
+
+        <!-- English subtitle warning -->
+        <div id="enSubtitleWarn" style="display:none;margin-bottom:10px;padding:7px 10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:6px;font-size:11px;color:var(--warning);">
+          ⚠️ 英语字幕识别精度较低，建议手动调整字幕轨里每条字幕的时间。
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:11px;color:var(--text3);">原文 <span style="color:var(--text3);font-size:10px;">（可选，每行一句）</span></div>
+            <div style="display:flex;gap:4px;">
+              <div class="toggle-btn active" id="btnAlignEven" onclick="setSubtitleAlign('even')" style="padding:2px 8px;font-size:10px;">等分</div>
+              <div class="toggle-btn" id="btnAlignRomaji" onclick="setSubtitleAlign('romaji')" style="padding:2px 8px;font-size:10px;">罗马音行</div>
+            </div>
+          </div>
+          <textarea id="subtitleOriginal" style="min-height:64px;" placeholder="（留空则不显示字幕）&#10;こんにちは&#10;ありがとう"></textarea>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">翻译 <span style="color:var(--text3);font-size:10px;">（可选，行数与原文对应）</span></div>
+          <textarea id="subtitleTranslation" style="min-height:52px;" placeholder="（留空则不显示翻译）&#10;Hello&#10;Thank you"></textarea>
+        </div>
+
+        <!-- Multi-char subtitle style (hidden in single-char mode) -->
+        <div id="multiSubStyle" style="display:none;margin-bottom:10px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:8px;">双人字幕样式 <span style="color:var(--text3);font-weight:300;">（字幕内容共用，颜色位置按角色分开）</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="font-size:11px;color:var(--accent);margin-bottom:6px;">角色 1 字幕</div>
+              <div class="subtitle-pos-row"><label>X</label>
+                <input type="range" id="cs1x" min="0" max="100" value="50" oninput="updateCharSubStyle(1,'xPct',this.value);document.getElementById('cs1xv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="cs1xv">50%</span></div>
+              <div class="subtitle-pos-row"><label>Y</label>
+                <input type="range" id="cs1y" min="0" max="100" value="88" oninput="updateCharSubStyle(1,'yPct',this.value);document.getElementById('cs1yv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="cs1yv">88%</span></div>
+              <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+                <label style="font-size:11px;color:var(--text3);">原文色</label>
+                <input type="color" id="cs1color" value="#ffffff" style="width:36px;height:26px;border-radius:4px;border:1px solid var(--border);cursor:pointer;" oninput="updateCharSubStyle(1,'color',this.value)">
+                <label style="font-size:11px;color:var(--text3);">译文色</label>
+                <input type="color" id="cs1colorSub" value="#f0e68c" style="width:36px;height:26px;border-radius:4px;border:1px solid var(--border);cursor:pointer;" oninput="updateCharSubStyle(1,'colorSub',this.value)">
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--accent2);margin-bottom:6px;">角色 2 字幕</div>
+              <div class="subtitle-pos-row"><label>X</label>
+                <input type="range" id="cs2x" min="0" max="100" value="50" oninput="updateCharSubStyle(2,'xPct',this.value);document.getElementById('cs2xv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="cs2xv">50%</span></div>
+              <div class="subtitle-pos-row"><label>Y</label>
+                <input type="range" id="cs2y" min="0" max="100" value="78" oninput="updateCharSubStyle(2,'yPct',this.value);document.getElementById('cs2yv').textContent=this.value+'%'">
+                <span class="subtitle-pos-val" id="cs2yv">78%</span></div>
+              <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+                <label style="font-size:11px;color:var(--text3);">原文色</label>
+                <input type="color" id="cs2color" value="#93c5fd" style="width:36px;height:26px;border-radius:4px;border:1px solid var(--border);cursor:pointer;" oninput="updateCharSubStyle(2,'color',this.value)">
+                <label style="font-size:11px;color:var(--text3);">译文色</label>
+                <input type="color" id="cs2colorSub" value="#fde68a" style="width:36px;height:26px;border-radius:4px;border:1px solid var(--border);cursor:pointer;" oninput="updateCharSubStyle(2,'colorSub',this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="subtitle-style-grid">
+          <div>
+            <label>字体</label>
+            <select id="subtitleFont" onchange="refreshSubtitlePreview()">
+              <option value="'Noto Sans JP', sans-serif">Noto Sans JP（中日）</option>
+              <option value="'Noto Serif JP', serif">Noto Serif JP（衬线）</option>
+              <option value="'M PLUS Rounded 1c', sans-serif">M PLUS 圆体</option>
+              <option value="'Sawarabi Mincho', serif">Sawarabi Mincho</option>
+              <option value="'Rajdhani', sans-serif">Rajdhani（英文）</option>
+              <option value="'Noto Sans', sans-serif">Noto Sans（通用）</option>
+            </select>
+          </div>
+          <div>
+            <label>字号（px）</label>
+            <input type="number" id="subtitleSize" value="32" min="12" max="120" onchange="refreshSubtitlePreview()">
+          </div>
+          <div>
+            <label>翻译字号</label>
+            <input type="number" id="subtitleSizeSub" value="22" min="10" max="80" onchange="refreshSubtitlePreview()">
+          </div>
+          <div>
+            <label>原文颜色</label>
+            <input type="color" id="subtitleColor" value="#ffffff" onchange="refreshSubtitlePreview()">
+          </div>
+          <div>
+            <label>翻译颜色</label>
+            <input type="color" id="subtitleColorSub" value="#f0e68c" onchange="refreshSubtitlePreview()">
+          </div>
+          <div>
+            <label>描边颜色</label>
+            <input type="color" id="subtitleStroke" value="#000000" onchange="refreshSubtitlePreview()">
+          </div>
+        </div>
+        <div class="subtitle-pos-row" style="margin-top:8px;">
+          <label>描边粗细</label>
+          <input type="range" id="subtitleStrokeWidth" min="0" max="3.0" step="0.05" value="0.08"
+            oninput="document.getElementById('subtitleStrokeWidthVal').textContent=parseFloat(this.value).toFixed(2)+'×'; refreshSubtitlePreview()">
+          <span class="subtitle-pos-val" id="subtitleStrokeWidthVal">0.08×</span>
+        </div>
+
+        <div class="subtitle-pos-row" style="margin-top:10px;">
+          <label>垂直位置</label>
+          <input type="range" id="subtitleY" min="0" max="100" value="88"
+            oninput="document.getElementById('subtitleYVal').textContent=this.value+'%'; refreshSubtitlePreview()">
+          <span class="subtitle-pos-val" id="subtitleYVal">88%</span>
+          <label style="margin-left:12px;">水平位置</label>
+          <input type="range" id="subtitleX" min="0" max="100" value="50"
+            oninput="document.getElementById('subtitleXVal').textContent=this.value+'%'; refreshSubtitlePreview()">
+          <span class="subtitle-pos-val" id="subtitleXVal">50%</span>
+        </div>
+        <div class="subtitle-pos-row" style="margin-top:6px;">
+          <label>原文与翻译间距</label>
+          <input type="range" id="subtitleLineGap" min="0.5" max="3.0" step="0.1" value="1.2"
+            oninput="document.getElementById('subtitleLineGapVal').textContent=parseFloat(this.value).toFixed(1)+'×'; refreshSubtitlePreview()">
+          <span class="subtitle-pos-val" id="subtitleLineGapVal">1.2×</span>
+        </div>
+
+      </div><!-- subtitle-panel -->
+      </div><!-- subtitlePanelBody -->
+      </div><!-- collapsible wrapper -->
+    </div>
+
+    <!-- Step 3: Generate -->
+    <div class="step full">
+      <div class="step-num">Step 03</div>
+      <h2>自动生成时间轴</h2>
+      <button class="btn-generate" id="btnGenerate" onclick="generateTimeline()">
+        ▶ 分析音频 &amp; 生成时间轴
+      </button>
+
+      <!-- Timeline -->
+      <div class="timeline-section" id="timelineSection">
+        <div class="timeline-header">
+          <h2>时间轴编辑</h2>
+          <div class="timeline-controls">
+            <button class="btn-small" onclick="playPauseTimeline()">▶ 播放</button>
+            <button class="btn-small" onclick="stopTimeline()">■ 停止</button>
+            <button class="btn-small primary" onclick="addSegment()">＋ 添加片段</button>
+          </div>
+        </div>
+
+        <!-- Waveform -->
+        <div class="waveform-container">
+          <canvas id="waveformCanvas"></canvas>
+          <div id="playhead"></div>
+        </div>
+
+        <!-- Selected segment editor -->
+        <div class="selected-info" id="selectedInfo">
+          <div class="seg-label" id="selLabel">A</div>
+          <div class="seg-time" id="selTime">0.00s — 0.20s</div>
+          <div class="seg-input-group">
+            <span>开始</span>
+            <input type="number" id="selStart" step="0.01" min="0" onchange="updateSelectedSeg()">
+            <span>结束</span>
+            <input type="number" id="selEnd" step="0.01" min="0" onchange="updateSelectedSeg()">
+            <button class="btn-seg-delete" onclick="deleteSelectedSeg()">删除</button>
+          </div>
+        </div>
+
+        <!-- Timeline canvas -->
+        <div class="timeline-tracks">
+          <canvas id="timelineCanvas"></canvas>
+        </div>
+        <div class="timeline-hint">点击片段可选中编辑 · 拖动片段边缘调整时间 · 横向滚动 · <kbd style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 4px;">Ctrl+滚轮</kbd> 或 <kbd style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 4px;">+/-</kbd> 缩放</div>
+
+        <!-- Subtitle track -->
+        <div id="subtitleTrack" style="display:none;margin-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">字幕轨 <span style="color:var(--text3);font-weight:300;font-size:11px;">点击勾选框控制该句是否显示</span></span>
+          </div>
+          <div id="subtitleTrackList" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;"></div>
+        </div>
+
+        <!-- Sticker track -->
+        <div id="stickerTrack" style="display:none;margin-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">戳章轨
+              <span style="color:var(--text3);font-weight:300;font-size:11px;">手动插入，与眨眼互斥</span>
+            </span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select id="newStickerCharIdx" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;">
+                <option value="1">角色1</option><option value="2">角色2</option>
+              </select>
+              <select id="newStickerType" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;">
+                <option value="wink">😉 Wink</option>
+                <option value="shifty">👀 目移</option>
+                <option value="smile">😊 闭眼笑</option>
+                <option value="custom">✨ 自定义</option>
+              </select>
+              <button class="btn-small" onclick="addStickerSegment()">＋ 添加</button>
+            </div>
+          </div>
+          <div id="stickerTrackList" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;"></div>
+        </div>
+
+        <!-- Emotion track -->
+        <div id="emotionTrack" style="display:none;margin-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:12px;color:var(--text2);font-weight:500;">情绪轨
+              <span style="color:var(--text3);font-weight:300;font-size:11px;">拖动边缘调整范围 · 点击选中后可修改情绪</span>
+            </span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select id="newEmotionCharIdx" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;">
+                <option value="1">角色1</option>
+                <option value="2">角色2</option>
+              </select>
+              <select id="newEmotionType" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;">
+                <option value="happy">😊 开心</option>
+                <option value="sad">😢 难过</option>
+                <option value="bored">😑 无聊</option>
+                <option value="nervous">😰 紧张</option>
+                <option value="custom">✨ 自定义</option>
+              </select>
+              <button class="btn-small" onclick="addEmotionSegment()">＋ 添加</button>
+              <button class="btn-small" onclick="confirmClearEmotionTrack()" style="color:var(--danger);border-color:var(--danger);">🗑 清空</button>
+            </div>
+          </div>
+          <!-- char1 track (always shown) -->
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px;" id="emotionTrackLabel1">情绪轨</div>
+          <div class="timeline-tracks" id="emotionTrackContainer1" style="height:52px;">
+            <canvas id="emotionCanvas1"></canvas>
+          </div>
+          <!-- char2 track (only in multi-char mode) -->
+          <div id="emotionTrack2Wrap" style="display:none;margin-top:8px;">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:3px;">角色 2 情绪轨</div>
+            <div class="timeline-tracks" id="emotionTrackContainer2" style="height:52px;">
+              <canvas id="emotionCanvas2"></canvas>
+            </div>
+          </div>
+          <div id="emotionSegInfo" style="display:none;margin-top:6px;" class="selected-info">
+            <div class="seg-label" id="emotionSegLabel">😊</div>
+            <select id="emotionSegType" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;color:var(--text);font-size:11px;" onchange="updateEmotionSeg()">
+              <option value="happy">😊 开心</option>
+              <option value="sad">😢 难过</option>
+              <option value="bored">😑 无聊</option>
+              <option value="nervous">😰 紧张</option>
+              <option value="custom">✨ 自定义</option>
+            </select>
+            <div class="seg-input-group">
+              <span>开始</span><input type="number" id="emotionSegStart" step="0.01" min="0" onchange="updateEmotionSeg()">
+              <span>结束</span><input type="number" id="emotionSegEnd" step="0.01" min="0" onchange="updateEmotionSeg()">
+              <button class="btn-seg-delete" onclick="deleteEmotionSeg()">删除</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Preview + Export -->
+    <div class="step full" id="stepPreview" style="display:none;">
+      <div class="step-num">Step 04</div>
+      <h2>预览 &amp; 导出</h2>
+      <div class="preview-export">
+        <div class="preview-area visible">
+          <h2>实时预览</h2>
+          <canvas id="previewCanvas" width="640" height="480" style="max-width:100%;height:auto;"></canvas>
+          <div class="preview-controls">
+            <button class="btn-play" id="btnPlayPreview" onclick="playPauseTimeline()">▶ 播放预览</button>
+            <span id="timeDisplay">0.00 / 0.00</span>
+          </div>
+          <div class="seekbar-wrap">
+            <input type="range" id="seekbar" min="0" max="1000" value="0" step="1"
+              oninput="onSeekbarInput(this.value)"
+              onchange="onSeekbarChange(this.value)">
+            <span class="seekbar-time" id="seekbarTime">0.00 / 0.00</span>
+          </div>
+        </div>
+
+        <div class="export-panel visible">
+          <h2>导出设置</h2>
+          <div class="export-option">
+            <label>画面尺寸</label>
+            <select id="exportSize" onchange="syncPreviewAspect()">
+              <option value="original">原图尺寸</option>
+              <option value="1920x1080">1920×1080</option>
+              <option value="1280x720">1280×720</option>
+              <option value="854x480">854×480</option>
+            </select>
+          </div>
+          <div class="export-option">
+            <label>帧率 (FPS)</label>
+            <select id="exportFps">
+              <option value="30">30 FPS</option>
+              <option value="24">24 FPS</option>
+              <option value="60">60 FPS</option>
+            </select>
+          </div>
+          <div class="export-option">
+            <label>背景模式</label>
+            <select id="bgMode" onchange="onBgModeChange()">
+              <option value="color">纯色背景</option>
+              <option value="image">背景图片</option>
+              <option value="transparent">透明背景</option>
+            </select>
+          </div>
+          <div class="export-option" id="bgColorOpt">
+            <label>背景颜色</label>
+            <input type="color" id="bgColor" value="#ffffff" style="width:100%;height:36px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;">
+          </div>
+          <div class="export-option" id="bgImageOpt" style="display:none;">
+            <label>背景图片</label>
+            <div id="bgImageZone" style="border:1.5px dashed var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer;position:relative;font-size:12px;color:var(--text3);">
+              <input type="file" accept="image/*" onchange="handleBgImage(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+              <span id="bgImageLabel">点击上传背景图</span>
+            </div>
+          </div>
+          <button class="btn-export" id="btnExport" onclick="startExport()">⬇ 导出 WebM</button>
+          <div id="exportProgress">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+            <div id="progressText">准备中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end steps -->
+
+</div><!-- end app -->
+
+<div id="toast"></div>
+
+<script>
+// ==================== STATE ====================
+const state = {
+  // single-char (unchanged)
+  images: { idle: null, a: null, i: null, u: null, e: null, o: null, open: null, schwa: null, ae: null, uu: null, oo: null, w: null, f: null, th: null, m: null },
+  blinkFrames: [null, null, null],
+  audioBuffer: null,
+  audioBlob: null,
+  audioDuration: 0,
+  segments: [], // [{type, start, end, charIdx?}]
+  playing: false,
+  currentTime: 0,
+  playStartTime: 0,
+  playStartAudioCtx: 0,
+  animFrame: null,
+  selectedSeg: -1,
+  audioCtx: null,
+  sourceNode: null,
+  dragState: null,
+  timelineScroll: 0,
+  pixelsPerSecond: 120,
+  bgImage: null,
+  bgImageUrl: null,
+  // new
+  lang: 'jp',           // 'jp' | 'en' | 'universal'
+  charMode: 'single',   // 'single' | 'multi'
+  charImages: {
+    1: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
+    2: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
+  },
+  // subtitle state
+  subtitles: [],
+  subtitleAlign: 'even', // 'even' | 'romaji'
+  // emotion state
+  // emotionSegments: charIdx=0 means "applies to all" (single-char mode)
+  emotionSegments: [], // [{start, end, emotion, charIdx}]
+  emotionImages: {
+    // single-char: keyed by emotion only — emotionImages[1][emo][key]
+    // multi-char:  emotionImages[charIdx][emo][key]
+    1: {
+      happy:   { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      sad:     { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      bored:   { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      nervous: { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      custom:  { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+    },
+    2: {
+      happy:   { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      sad:     { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      bored:   { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      nervous: { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+      custom:  { idle:null, a:null, i:null, u:null, e:null, o:null, blink0:null, blink1:null, blink2:null },
+    },
+  },
+  customEmotionName: '自定义',
+  // Per-character layout: position, scale, layer order
+  charLayout: {
+    1: { xPct: 30, yPct: 50, scale: 100, layer: 1 },
+    2: { xPct: 70, yPct: 50, scale: 100, layer: 2 },
+  },
+  // Per-emotion animation params (amplitude in % of canvas, probability 0-1)
+  emotionAnim: {
+    happy:   { jumpAmp: 2.0, jumpThresh: 0.5, walkAmp: 0, walkProb: 0 },
+    sad:     { jumpAmp: 0,   jumpThresh: 0.5, walkAmp: 0.3, walkProb: 0.15 },
+    bored:   { jumpAmp: 0,   jumpThresh: 0.5, walkAmp: 0, walkProb: 0 },
+    nervous: { jumpAmp: 0,   jumpThresh: 0.5, walkAmp: 0.8, walkProb: 0.6 },
+    custom:  { jumpAmp: 1.0, jumpThresh: 0.5, walkAmp: 0.5, walkProb: 0.3 },
+  },
+  // Per-character subtitle style (multi-char mode only)
+  charSubStyle: {
+    1: { xPct: 50, yPct: 88, color: '#ffffff', colorSub: '#f0e68c' },
+    2: { xPct: 50, yPct: 78, color: '#93c5fd', colorSub: '#fde68a' },
+  },
+  // Stickers: up to 4 types, each with up to 4 frames
+  stickers: {
+    wink:   { frames: [null,null,null,null,null,null,null,null], fps: 12, label: '😉 Wink' },
+    shifty: { frames: [null,null,null,null,null,null,null,null], fps: 12, label: '👀 目移' },
+    smile:  { frames: [null,null,null,null,null,null,null,null], fps: 10, label: '😊 闭眼笑' },
+    custom: { frames: [null,null,null,null,null,null,null,null], fps: 12, label: '✨ 自定义' },
+  },
+  stickerSegments: [], // [{start, end, type, charIdx}]
+  // Runtime animation state per character (not saved)
+  animState: {
+    1: { offX: 0, offY: 0, targetX: 0, targetY: 0, jumpVelY: 0, lastSegIdx: -1, shakePhase: 0 },
+    2: { offX: 0, offY: 0, targetX: 0, targetY: 0, jumpVelY: 0, lastSegIdx: -1, shakePhase: Math.random() * 100 },
+  },
+};
+
+// ==================== IMAGE HANDLING ====================
+// imageCache stores fully-loaded HTMLImageElement objects
+const imageCache = {};
+
+// ==================== LANGUAGE + CHAR MODE ====================
+function setLang(lang) {
+  state.lang = lang;
+  document.getElementById('btnLangJP').classList.toggle('active', lang === 'jp');
+  document.getElementById('btnLangUNI').classList.toggle('active', lang === 'universal');
+  document.getElementById('btnLangEN').classList.toggle('active', lang === 'en');
+  document.getElementById('langHintJP').style.display = lang === 'jp' ? '' : 'none';
+  document.getElementById('langHintEN').style.display = lang === 'en' ? '' : 'none';
+
+  const isUni = lang === 'universal';
+  const isEN = lang === 'en';
+  // Single-char: hide romaji + vowels, show open frame
+  const romajiSection = document.getElementById('romajiSection');
+  if (romajiSection) romajiSection.style.display = isUni ? 'none' : '';
+  const vowelSection = document.getElementById('vowelSection');
+  if (vowelSection) vowelSection.style.display = isUni ? 'none' : '';
+  const openZone = document.getElementById('universalOpenZone');
+  if (openZone) openZone.style.display = isUni ? '' : 'none';
+  // EN phoneme section
+  const enPhoneme = document.getElementById('enPhonemeSection');
+  if (enPhoneme) enPhoneme.style.display = isEN ? '' : 'none';
+  const enImportHint = document.getElementById('enImportHint');
+  if (enImportHint) enImportHint.style.display = isEN ? '' : 'none';
+  // Switch vowel sublabels between JP kana and EN phonetic
+  const vowelLabels = isEN
+    ? { a:'/ɑ/ father', i:'/iː/ see', u:'/uː/ blue', e:'/ɛ/ bed', o:'/oʊ/ go' }
+    : { a:'あ', i:'い', u:'う', e:'え', o:'お' };
+  ['a','i','u','e','o'].forEach(function(v) {
+    const el = document.getElementById('sub-' + v);
+    if (el) el.textContent = vowelLabels[v];
+  });
+  // Also update vowel section label
+  const vowelTitle = document.querySelector('#vowelSection').previousElementSibling;
+  if (vowelTitle) vowelTitle.textContent = isEN ? '五个基础元音口型' : '五个元音口型';
+  // Multi-char: hide/show vowel zones, show/hide open zones per char
+  const vowelDisplay = isUni ? 'none' : 'contents';
+  const openDisplay = isUni ? '' : 'none';
+  [1,2].forEach(function(ci) {
+    const vw = document.getElementById('c' + ci + '-vowels');
+    if (vw) vw.style.display = vowelDisplay;
+    const op = document.getElementById('zone-c' + ci + '-open');
+    if (op) op.style.display = openDisplay;
+  });
+  // Emotion keys: in universal mode only show idle/open/blink in emotion grids
+  // (handled in buildEmotionGrids via EMOTION_KEYS_FOR_LANG)
+  const label = document.getElementById('romajiLabel');
+  label.innerHTML = lang === 'jp'
+    ? '罗马音文本 <span style="color:var(--text3);font-size:10px;margin-left:6px;">用空格分隔每个音节</span>'
+    : '英语单词 <span style="color:var(--text3);font-size:10px;margin-left:6px;">用空格分隔每个单词</span>';
+  document.getElementById('romajiInput').placeholder = lang === 'jp'
+    ? '例：ko n ni chi wa wa ta shi no na ma e wa...\n\n每个音节用空格隔开'
+    : '方式一：hello how are you today（普通单词）\n方式二：HH AH0 L OW1 HH AW1（Arpabet音标，音素空格分隔）';
+  const warn = document.getElementById('enSubtitleWarn');
+  if (warn) warn.style.display = lang === 'en' ? '' : 'none';
+}
+
+function setCharMode(mode) {
+  state.charMode = mode;
+  document.getElementById('btnSingleChar').classList.toggle('active', mode === 'single');
+  document.getElementById('btnMultiChar').classList.toggle('active', mode === 'multi');
+  document.getElementById('singleCharImages').style.display = mode === 'single' ? '' : 'none';
+  document.getElementById('multiCharImages').style.display = mode === 'multi' ? '' : 'none';
+  document.getElementById('multiCharHint').style.display = mode === 'multi' ? '' : 'none';
+  const multiSub = document.getElementById('multiSubStyle');
+  if (multiSub) multiSub.style.display = mode === 'multi' ? '' : 'none';
+  updateEmotionCharMode();
+}
+
+let activeCharTab = 1;
+function switchCharTab(idx) {
+  activeCharTab = idx;
+  const panel = document.getElementById('multiCharImages');
+  if (!panel) return;
+  panel.querySelectorAll('.char-tab').forEach(function(t) {
+    t.classList.toggle('active', t.textContent.trim() === '角色 ' + idx);
+  });
+  document.getElementById('charImgPanel-1').style.display = idx === 1 ? '' : 'none';
+  document.getElementById('charImgPanel-2').style.display = idx === 2 ? '' : 'none';
+}
+
+function handleCharImage(charIdx, key, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      imageCache[dataUrl] = img;
+      state.charImages[charIdx][key] = dataUrl;
+      const zone = document.getElementById('zone-c' + charIdx + '-' + key);
+      if (zone) markZoneFilled(zone, dataUrl);
+      showToast('✓ 角色' + charIdx + ' ' + key.toUpperCase() + ' 已上传', 'success');
+    };
+    img.onerror = () => showToast('图片加载失败', 'error');
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ==================== SUBTITLE ====================
+function setSubtitleAlign(mode) {
+  state.subtitleAlign = mode;
+  document.getElementById('btnAlignEven').classList.toggle('active', mode === 'even');
+  document.getElementById('btnAlignRomaji').classList.toggle('active', mode === 'romaji');
+}
+
+function buildSubtitles(segments) {
+  const origLines = (document.getElementById('subtitleOriginal').value || '')
+    .split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+  const transLines = (document.getElementById('subtitleTranslation').value || '')
+    .split('\n').map(function(s){ return s.trim(); });
+  if (!origLines.length) return [];
+
+  if (state.subtitleAlign === 'romaji') {
+    // Align by romaji lines: group segments by romaji line breaks
+    // Each line of romaji = one subtitle, time = first seg start → last seg end of that line
+    const romajiRaw = (document.getElementById('romajiInput').value || '').trim();
+    const romajiLines = romajiRaw.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+
+    if (!romajiLines.length || !segments.length) {
+      // Fallback to even split if no romaji
+      return buildSubtitlesEven(origLines, transLines);
+    }
+
+    // Count syllables per romaji line
+    const voiced = segments.filter(function(s){ return s.type !== 'blink'; })
+      .sort(function(a,b){ return a.start - b.start; });
+    if (!voiced.length) return buildSubtitlesEven(origLines, transLines);
+
+    const sylPerLine = romajiLines.map(function(line) {
+      // Handle multi-char prefix [1] etc
+      const m = line.match(/^\[(\d+)(?::[a-z]+)?\]\s*(.*)/);
+      const text = m ? m[2] : line;
+      return text.trim().split(/\s+/).filter(function(w){
+        return w && extractVowel(w) !== null;
+      }).length;
+    });
+
+    const totalSyls = sylPerLine.reduce(function(a,b){ return a+b; }, 0);
+    if (!totalSyls) return buildSubtitlesEven(origLines, transLines);
+
+    const result = [];
+    let segCursor = 0;
+    let origIdx = 0;
+
+    for (let li = 0; li < romajiLines.length; li++) {
+      const sylCount = sylPerLine[li];
+      if (!sylCount) continue;
+      const segCount = Math.max(1, Math.round((sylCount / totalSyls) * voiced.length));
+      const lineSegs = voiced.slice(segCursor, Math.min(segCursor + segCount, voiced.length));
+      segCursor += segCount;
+      if (!lineSegs.length || origIdx >= origLines.length) { origIdx++; continue; }
+      result.push({
+        start: lineSegs[0].start,
+        end: lineSegs[lineSegs.length - 1].end,
+        original: origLines[origIdx] || '',
+        translation: transLines[origIdx] || '',
+        visible: true,
+      });
+      origIdx++;
+    }
+    return result.filter(function(s){ return s.original; });
+  }
+
+  // Default: even split
+  return buildSubtitlesEven(origLines, transLines);
+}
+
+function buildSubtitlesEven(origLines, transLines) {
+  const dur = state.audioDuration;
+  const n = origLines.length;
+  return origLines.map(function(orig, i) {
+    return {
+      start: (i / n) * dur,
+      end: ((i + 1) / n) * dur,
+      original: orig,
+      translation: transLines[i] || '',
+      visible: true,
+    };
+  });
+}
+
+function getSubtitleAt(t) {
+  return state.subtitles.find(function(s){ return s.visible !== false && t >= s.start && t <= s.end; }) || null;
+}
+
+function renderSubtitleTrack() {
+  const track = document.getElementById('subtitleTrack');
+  const list = document.getElementById('subtitleTrackList');
+  if (!state.subtitles.length) { track.style.display = 'none'; return; }
+  track.style.display = 'block';
+  list.innerHTML = '';
+  state.subtitles.forEach(function(sub, idx) {
+    const item = document.createElement('div');
+    item.className = 'sub-track-item' + (sub.visible === false ? ' muted' : '');
+
+    // Editable time inputs — build with template literals to avoid quote conflicts
+    const startInput = `<input type="number" step="0.01" min="0" value="${sub.start.toFixed(2)}" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 4px;color:var(--text);font-size:11px;font-family:Rajdhani,monospace;" onchange="updateSubTime(${idx},'start',this.value)">`;
+    const endInput = `<input type="number" step="0.01" min="0" value="${sub.end.toFixed(2)}" style="width:56px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 4px;color:var(--text);font-size:11px;font-family:Rajdhani,monospace;" onchange="updateSubTime(${idx},'end',this.value)">`;
+
+    item.innerHTML =
+      '<input type="checkbox"' + (sub.visible !== false ? ' checked' : '') + ' onchange="toggleSubtitle(' + idx + ', this.checked)">' +
+      '<span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:3px;">' + startInput + '<span style="color:var(--text3);">–</span>' + endInput + '</span>' +
+      '<span class="sub-orig">' + escHtml(sub.original) + '</span>' +
+      (sub.translation ? '<span class="sub-trans">' + escHtml(sub.translation) + '</span>' : '');
+    list.appendChild(item);
+  });
+}
+
+function updateSubTime(idx, edge, val) {
+  if (!state.subtitles[idx]) return;
+  const t = parseFloat(val);
+  if (isNaN(t)) return;
+  if (edge === 'start') {
+    state.subtitles[idx].start = Math.max(0, Math.min(t, state.subtitles[idx].end - 0.1));
+  } else {
+    state.subtitles[idx].end = Math.max(state.subtitles[idx].start + 0.1, Math.min(t, state.audioDuration));
+  }
+  renderPreviewFrame(state.currentTime);
+}
+
+function toggleSubtitlePanel() {
+  const body = document.getElementById('subtitlePanelBody');
+  const arrow = document.getElementById('subtitlePanelArrow');
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function toggleFolderImport() {
+  const body = document.getElementById('folderImportBody');
+  const arrow = document.getElementById('folderImportArrow');
+  if (!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function toggleStickerPanel() {
+  const body = document.getElementById('stickerPanelBody');
+  const arrow = document.getElementById('stickerPanelArrow');
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.style.transform = open ? 'rotate(180deg)' : '';
+  if (open) buildStickerPanel();
+}
+
+function toggleSubtitle(idx, checked) {
+  if (!state.subtitles[idx]) return;
+  state.subtitles[idx].visible = checked;
+  const items = document.querySelectorAll('.sub-track-item');
+  if (items[idx]) items[idx].className = 'sub-track-item' + (checked ? '' : ' muted');
+  renderPreviewFrame(state.currentTime);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function drawSubtitle(ctx, sub, canvasW, canvasH, speakingCi) {
+  if (!sub || !sub.original) return;
+  const font = document.getElementById('subtitleFont').value;
+  const stroke = document.getElementById('subtitleStroke').value;
+  const strokeMult = parseFloat(document.getElementById('subtitleStrokeWidth')?.value ?? 0.08);
+  const lineGap = parseFloat(document.getElementById('subtitleLineGap')?.value) || 1.2;
+  const REF_H = 480;
+  const scale = canvasH / REF_H;
+  const sizeBase = parseInt(document.getElementById('subtitleSize').value) || 32;
+  const sizeSubBase = parseInt(document.getElementById('subtitleSizeSub').value) || 22;
+  const size = Math.round(sizeBase * scale);
+  const sizeSub = Math.round(sizeSubBase * scale);
+
+  // In multi-char mode, use per-char style if a speaking char is identified
+  let color, colorSub, xPct, yPct;
+  if (state.charMode === 'multi' && speakingCi && state.charSubStyle[speakingCi]) {
+    const cs = state.charSubStyle[speakingCi];
+    color = cs.color; colorSub = cs.colorSub;
+    xPct = cs.xPct / 100; yPct = cs.yPct / 100;
+  } else {
+    color = document.getElementById('subtitleColor').value;
+    colorSub = document.getElementById('subtitleColorSub').value;
+    xPct = parseInt(document.getElementById('subtitleX').value) / 100;
+    yPct = parseInt(document.getElementById('subtitleY').value) / 100;
+  }
+
+  const cx = canvasW * xPct;
+  const baseY = canvasH * yPct;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = 'bold ' + size + 'px ' + font;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = Math.max(0, size * strokeMult);
+  ctx.lineJoin = 'round';
+  ctx.strokeText(sub.original, cx, baseY);
+  ctx.fillStyle = color;
+  ctx.fillText(sub.original, cx, baseY);
+
+  if (sub.translation) {
+    const ty = baseY + size * lineGap;
+    ctx.font = sizeSub + 'px ' + font;
+    ctx.lineWidth = Math.max(0, sizeSub * strokeMult * 0.875);
+    ctx.strokeStyle = stroke;
+    ctx.strokeText(sub.translation, cx, ty);
+    ctx.fillStyle = colorSub;
+    ctx.fillText(sub.translation, cx, ty);
+  }
+}
+
+function refreshSubtitlePreview() {
+  if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+}
+
+function updateCharSubStyle(ci, prop, val) {
+  if (!state.charSubStyle[ci]) state.charSubStyle[ci] = { xPct:50, yPct:88, color:'#ffffff', colorSub:'#f0e68c' };
+  state.charSubStyle[ci][prop] = prop.includes('Pct') ? parseFloat(val) : val;
+  refreshSubtitlePreview();
+}
+
+// In multi-char mode, find which char is speaking at time t (based on segments)
+function getSpeakingCharAt(t) {
+  for (const seg of state.segments) {
+    if (seg.type !== 'blink' && seg.charIdx && t >= seg.start && t < seg.end) {
+      return seg.charIdx;
+    }
+  }
+  return null; // nobody speaking — use fallback
+}
+
+// ==================== STICKER SYSTEM ====================
+const STICKER_COLORS = { wink:'#f9a8d4', shifty:'#a5b4fc', smile:'#6ee7b7', custom:'#fcd34d' };
+
+function buildStickerPanel() {
+  const container = document.getElementById('stickerUploadContainer');
+  if (!container || container.children.length > 0) return;
+  for (const [type, sticker] of Object.entries(state.stickers)) {
+    const row = document.createElement('div');
+    row.style.cssText = 'margin-bottom:14px;';
+    const fps = sticker.fps || 12;
+    // Header row with label + folder import button
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;';
+    headerDiv.innerHTML = `<div style="font-size:11px;color:var(--text2);">${sticker.label} <span style="color:var(--text3);font-size:10px;">（最多8帧，按顺序上传）</span></div>`;
+    // Folder import label for this sticker type
+    const folderLabel = document.createElement('label');
+    folderLabel.className = 'btn-small';
+    folderLabel.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:3px 8px;';
+    folderLabel.textContent = '📁 文件夹导入';
+    const folderInp = document.createElement('input');
+    folderInp.type = 'file'; folderInp.accept = 'image/*';
+    folderInp.setAttribute('webkitdirectory', '');
+    folderInp.multiple = true;
+    folderInp.style.display = 'none';
+    const t3 = type;
+    folderInp.addEventListener('change', function(){ importStickerFolder(this, t3); });
+    folderLabel.appendChild(folderInp);
+    headerDiv.appendChild(folderLabel);
+    row.appendChild(headerDiv);
+    // FPS slider
+    const fpsDiv = document.createElement('div');
+    fpsDiv.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <label style="font-size:11px;color:var(--text3);white-space:nowrap;">帧率</label>
+      <input type="range" id="stickerFps-${type}" min="4" max="24" step="1" value="${fps}"
+        style="flex:1;accent-color:var(--accent2);cursor:pointer;"
+        oninput="state.stickers['${type}'].fps=parseInt(this.value);document.getElementById('stickerFpsVal-${type}').textContent=this.value+'fps'">
+      <span id="stickerFpsVal-${type}" style="font-family:Rajdhani,monospace;font-size:12px;color:var(--accent2);min-width:36px;">${fps}fps</span>
+    </div>`;
+    row.appendChild(fpsDiv);
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:6px;';
+    for (let fi = 0; fi < 8; fi++) {
+      const zone = document.createElement('div');
+      zone.className = 'upload-zone';
+      zone.id = `zone-sticker-${type}-${fi}`;
+      const existing = sticker.frames[fi];
+      if (existing) markZoneFilled(zone, existing);
+      else zone.innerHTML = `<div class="label" style="font-size:10px;">帧${fi+1}</div>`;
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*';
+      inp.style.cssText = 'position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;';
+      const t2 = type, f2 = fi;
+      inp.addEventListener('change', function(){ handleStickerImage(t2, f2, this); });
+      zone.appendChild(inp);
+      grid.appendChild(zone);
+    }
+    row.appendChild(grid);
+    container.appendChild(row);
+  }
+}
+
+// Import sticker folder directly into a specific sticker type
+async function importStickerFolder(input, type) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  let imported = 0;
+  for (const file of files) {
+    const base = file.name.replace(/\.[^.]+$/, '').toLowerCase().trim();
+    if (!['1','2','3','4','5','6','7','8'].includes(base)) continue;
+    const dataUrl = await readFileAsDataUrl(file);
+    const img = await loadImage(dataUrl);
+    if (!img) continue;
+    const fi = parseInt(base) - 1;
+    state.stickers[type].frames[fi] = dataUrl;
+    const zone = document.getElementById('zone-sticker-' + type + '-' + fi);
+    if (zone) markZoneFilled(zone, dataUrl);
+    imported++;
+  }
+  if (imported > 0) {
+    showToast('✓ ' + state.stickers[type].label + ' 已导入 ' + imported + ' 帧', 'success');
+  } else {
+    showToast('⚠️ 未找到命名为 1~8 的图片文件', 'warning', 5000);
+  }
+  input.value = '';
+}
+
+function handleStickerImage(type, frameIdx, input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      imageCache[dataUrl] = img;
+      state.stickers[type].frames[frameIdx] = dataUrl;
+      const zone = document.getElementById(`zone-sticker-${type}-${frameIdx}`);
+      if (zone) markZoneFilled(zone, dataUrl);
+      showToast('✓ ' + state.stickers[type].label + ' 帧' + (frameIdx+1) + ' 已上传', 'success');
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function getStickerAt(t, ci) {
+  return state.stickerSegments.find(function(s) {
+    return (s.charIdx === ci || (!s.charIdx && ci === 1)) && t >= s.start && t < s.end;
+  }) || null;
+}
+
+function addStickerSegment() {
+  const type = document.getElementById('newStickerType').value;
+  const ci = state.charMode === 'multi'
+    ? parseInt(document.getElementById('newStickerCharIdx').value || 1) : 1;
+  const t = state.currentTime;
+  const frames = state.stickers[type].frames.filter(Boolean);
+  const fps = state.stickers[type].fps || 12;
+  const dur = Math.max(0.2, frames.length / fps);
+  if (t + dur > state.audioDuration) return;
+  state.stickerSegments.push({ start: t, end: t + dur, type, charIdx: ci });
+  renderStickerTrack();
+}
+
+function deleteStickerSeg(idx) {
+  state.stickerSegments.splice(idx, 1);
+  renderStickerTrack();
+}
+
+function renderStickerTrack() {
+  const list = document.getElementById('stickerTrackList');
+  const track = document.getElementById('stickerTrack');
+  if (!list || !track) return;
+  track.style.display = state.audioDuration ? 'block' : 'none';
+  list.innerHTML = '';
+  state.stickerSegments.forEach(function(seg, idx) {
+    const item = document.createElement('div');
+    item.className = 'sub-track-item';
+    const col = STICKER_COLORS[seg.type] || '#888';
+    item.innerHTML = `<span style="color:${col};font-size:13px;min-width:20px;">${state.stickers[seg.type]?.label?.split(' ')[0]||'?'}</span>` +
+      `<span class="sub-time">${seg.start.toFixed(2)}s–${seg.end.toFixed(2)}s</span>` +
+      (state.charMode === 'multi' ? `<span style="font-size:10px;color:var(--text3);">角色${seg.charIdx}</span>` : '') +
+      `<button class="btn-seg-delete" onclick="deleteStickerSeg(${idx})" style="margin-left:auto;">删除</button>`;
+    list.appendChild(item);
+  });
+}
+
+// voice threshold slider: maps 1-10 to multiplier labels
+const VOICE_THRESH_LABELS = {
+  1: '极低（×1%）', 2: '很低（×2%）', 3: '低（×4%）',
+  4: '中低（×6%）', 5: '中（×8%）', 6: '中高（×12%）',
+  7: '高（×18%）', 8: '很高（×25%）', 9: '极高（×35%）', 10: '最高（×50%）'
+};
+const VOICE_THRESH_MULTS = {
+  1: 0.01, 2: 0.02, 3: 0.04, 4: 0.06, 5: 0.08,
+  6: 0.12, 7: 0.18, 8: 0.25, 9: 0.35, 10: 0.50
+};
+
+function updateVoiceThresholdLabel(val) {
+  document.getElementById('voiceThresholdLabel').textContent =
+    VOICE_THRESH_LABELS[val] || ('×' + val);
+}
+
+function onBgModeChange() {
+  const mode = document.getElementById('bgMode').value;
+  document.getElementById('bgColorOpt').style.display = mode === 'color' ? '' : 'none';
+  document.getElementById('bgImageOpt').style.display = mode === 'image' ? '' : 'none';
+}
+
+function isTransparentMode() {
+  return (document.getElementById('bgMode')?.value || 'color') === 'transparent';
+}
+
+function handleBgImage(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      state.bgImage = img;
+      state.bgImageUrl = dataUrl;
+      document.getElementById('bgImageLabel').textContent = '✓ ' + file.name;
+      document.getElementById('bgImageZone').style.borderColor = 'var(--accent3)';
+      if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadImage(url) {
+  // For blob URLs, just create an Image and set src — Chrome handles these fine
+  // Do NOT use onerror as a failure signal for blob URLs (false positives)
+  if (imageCache[url] && imageCache[url].complete && imageCache[url].naturalWidth > 0) {
+    return Promise.resolve(imageCache[url]);
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => { imageCache[url] = img; resolve(img); };
+    // onerror only fires for truly broken files; still resolve so caller can check
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+function markZoneFilled(zone, url) {
+  zone.classList.add('filled');
+  let img = zone.querySelector('.preview-img');
+  if (!img) {
+    img = document.createElement('img');
+    img.className = 'preview-img';
+    zone.appendChild(img);
+  }
+  img.src = url;
+  zone.querySelectorAll('.label, .sublabel').forEach(el => el.style.display = 'none');
+  if (!zone.querySelector('.check')) {
+    const check = document.createElement('div');
+    check.className = 'check';
+    check.textContent = '✓';
+    zone.appendChild(check);
+  }
+  // Add clear button if not already there
+  if (!zone.querySelector('.zone-clear')) {
+    const btn = document.createElement('div');
+    btn.className = 'zone-clear';
+    btn.textContent = '×';
+    btn.title = '清空';
+    btn.onclick = function(e) {
+      e.preventDefault(); e.stopPropagation();
+      clearZone(zone);
+    };
+    zone.appendChild(btn);
+  }
+}
+
+function clearZone(zone) {
+  zone.classList.remove('filled');
+  const img = zone.querySelector('.preview-img');
+  if (img) img.remove();
+  const check = zone.querySelector('.check');
+  if (check) check.remove();
+  const btn = zone.querySelector('.zone-clear');
+  if (btn) btn.remove();
+  zone.querySelectorAll('.label, .sublabel').forEach(el => el.style.display = '');
+  // Reset the file input so same file can be re-uploaded
+  const input = zone.querySelector('input[type="file"]');
+  if (input) input.value = '';
+
+  // Figure out what data to clear based on zone ID
+  const id = zone.id || '';
+  if (id.startsWith('zone-emo-')) {
+    // zone-emo-{ci}-{emo}-{key}
+    const parts = id.replace('zone-emo-','').split('-');
+    const ci = parseInt(parts[0]);
+    const key = parts[parts.length - 1];
+    const emo = parts.slice(1, -1).join('-');
+    if (state.emotionImages[ci]?.[emo]) state.emotionImages[ci][emo][key] = null;
+  } else if (id.startsWith('zone-sticker-')) {
+    // zone-sticker-{type}-{fi}
+    const parts = id.replace('zone-sticker-','').split('-');
+    const fi = parseInt(parts[parts.length-1]);
+    const type = parts.slice(0,-1).join('-');
+    if (state.stickers[type]) state.stickers[type].frames[fi] = null;
+  } else if (id.startsWith('zone-c') && id.includes('-')) {
+    // zone-c{ci}-{key}
+    const m = id.match(/zone-c(\d+)-(.+)/);
+    if (m) { const ci=parseInt(m[1]), key=m[2]; if(state.charImages[ci]) state.charImages[ci][key]=null; }
+  } else if (id.startsWith('zone-blink-')) {
+    const idx = parseInt(id.replace('zone-blink-',''));
+    state.blinkFrames[idx] = null;
+  } else if (id === 'zone-idle') { state.images.idle = null; syncPreviewAspect(); }
+  else if (id === 'zone-a') state.images.a = null;
+  else if (id === 'zone-i') state.images.i = null;
+  else if (id === 'zone-u') state.images.u = null;
+  else if (id === 'zone-e') state.images.e = null;
+  else if (id === 'zone-o') state.images.o = null;
+
+  if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+}
+
+// ── File name → key mapping ──
+const FOLDER_KEY_MAP = {
+  'idle': 'idle', 'open': 'open',
+  'a': 'a', 'i': 'i', 'u': 'u', 'e': 'e', 'o': 'o',
+  'blink1': 'blink-0', 'blink2': 'blink-1', 'blink3': 'blink-2',
+  // Sticker frames: 1-8
+  '1':'s0','2':'s1','3':'s2','4':'s3','5':'s4','6':'s5','7':'s6','8':'s7',
+};
+
+function getFileBaseName(file) {
+  return file.name.replace(/\.[^.]+$/, '').toLowerCase().trim();
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise(function(resolve) {
+    const reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function importFolder(input, mode) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  let imported = 0;
+
+  for (const file of files) {
+    const base = getFileBaseName(file);
+    const dataUrl = await readFileAsDataUrl(file);
+    const img = await loadImage(dataUrl);
+    if (!img) continue;
+
+    if (mode === 'sticker') {
+      if (['1','2','3','4','5','6','7','8'].includes(base)) {
+        if (!window._stickerImportBuffer) window._stickerImportBuffer = [];
+        window._stickerImportBuffer.push({ idx: parseInt(base)-1, dataUrl });
+        imported++;
+      }
+    } else if (mode === 'blink') {
+      if (['blink1','blink2','blink3'].includes(base)) {
+        const idx = parseInt(base.replace('blink','')) - 1;
+        state.blinkFrames[idx] = dataUrl;
+        const zone = document.getElementById('zone-blink-' + idx);
+        if (zone) markZoneFilled(zone, dataUrl);
+        imported++;
+      }
+    } else {
+      // mouth: idle/a/i/u/e/o/open + EN phonemes
+      const keyMap = { idle:'idle', a:'a', i:'i', u:'u', e:'e', o:'o', open:'open',
+        schwa:'schwa', ae:'ae', uu:'uu', oo:'oo', w:'w', f:'f', th:'th', m:'m' };
+      if (keyMap[base]) {
+        state.images[keyMap[base]] = dataUrl;
+        const zone = document.getElementById('zone-' + keyMap[base]);
+        if (zone) markZoneFilled(zone, dataUrl);
+        if (keyMap[base] === 'idle') syncPreviewAspect();
+        imported++;
+      }
+    }
+  }
+
+  // Handle sticker import buffer
+  if (window._stickerImportBuffer && window._stickerImportBuffer.length) {
+    const type = await promptStickerType();
+    if (type) {
+      for (const item of window._stickerImportBuffer) {
+        state.stickers[type].frames[item.idx] = item.dataUrl;
+        imageCache[item.dataUrl] = await loadImage(item.dataUrl);
+      }
+      // Rebuild sticker panel if open
+      const sc = document.getElementById('stickerUploadContainer');
+      if (sc) { sc.innerHTML = ''; buildStickerPanel(); }
+    }
+    window._stickerImportBuffer = null;
+  }
+
+  if (imported > 0) {
+    if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+    showToast('✓ 已导入 ' + imported + ' 张图片', 'success');
+  } else {
+    showToast('⚠️ 未识别到符合命名规则的图片，请检查文件名', 'warning', 5000);
+  }
+  input.value = '';
+}
+
+function promptStickerType() {
+  return new Promise(function(resolve) {
+    const types = Object.keys(state.stickers);
+    const labels = types.map(function(t){ return state.stickers[t].label; });
+    const choice = window.prompt(
+      '检测到戳章帧（1-8命名）\n请输入要导入的戳章类型编号：\n' +
+      types.map(function(t,i){ return (i+1) + '. ' + state.stickers[t].label; }).join('\n'),
+      '1'
+    );
+    if (!choice) { resolve(null); return; }
+    const idx = parseInt(choice) - 1;
+    resolve(types[idx] || null);
+  });
+}
+
+async function importEmotionFolder(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  // Current active emotion tab and char
+  const emo = activeEmotionTab;
+  const ci = activeEmotionCharIdx;
+  let imported = 0;
+  const keyMap = {
+    idle:'idle', a:'a', i:'i', u:'u', e:'e', o:'o',
+    blink1:'blink0', blink2:'blink1', blink3:'blink2',
+  };
+  for (const file of files) {
+    const base = getFileBaseName(file);
+    if (!keyMap[base]) continue;
+    const dataUrl = await readFileAsDataUrl(file);
+    const img = await loadImage(dataUrl);
+    if (!img) continue;
+    if (!state.emotionImages[ci]) state.emotionImages[ci] = {};
+    if (!state.emotionImages[ci][emo]) state.emotionImages[ci][emo] = {};
+    state.emotionImages[ci][emo][keyMap[base]] = dataUrl;
+    const zone = document.getElementById('zone-emo-' + ci + '-' + emo + '-' + keyMap[base]);
+    if (zone) markZoneFilled(zone, dataUrl);
+    imported++;
+  }
+  if (imported > 0) {
+    showToast('✓ 已导入 ' + imported + ' 张情绪套图（' + (EMOTION_LABELS[emo]||emo) + '）', 'success');
+    if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+  } else {
+    showToast('⚠️ 未识别到符合命名规则的图片', 'warning', 5000);
+  }
+  input.value = '';
+}
+
+async function importCharFolder(input, ci) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  let imported = 0;
+  const keyMap = { idle:'idle', a:'a', i:'i', u:'u', e:'e', o:'o', open:'open', blink:'blink' };
+  for (const file of files) {
+    const base = getFileBaseName(file);
+    if (!keyMap[base]) continue;
+    const dataUrl = await readFileAsDataUrl(file);
+    const img = await loadImage(dataUrl);
+    if (!img) continue;
+    state.charImages[ci][keyMap[base]] = dataUrl;
+    const zone = document.getElementById('zone-c' + ci + '-' + keyMap[base]);
+    if (zone) markZoneFilled(zone, dataUrl);
+    imported++;
+  }
+  if (imported > 0) {
+    showToast('✓ 已导入角色' + ci + ' ' + imported + ' 张图片', 'success');
+    if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+  } else {
+    showToast('⚠️ 未识别到符合命名规则的图片', 'warning', 5000);
+  }
+  input.value = '';
+}
+
+function handleImage(key, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  // Use FileReader to convert to data URL — avoids all blob URL security/timing issues
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      imageCache[dataUrl] = img;
+      state.images[key] = dataUrl;
+      const zone = document.getElementById('zone-' + key);
+      markZoneFilled(zone, dataUrl);
+      if (key === 'idle') syncPreviewAspect();
+      else if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+      showToast('✓ 已上传 ' + file.name, 'success');
+    };
+    img.onerror = () => showToast('图片加载失败，请使用 JPG / PNG / WebP 格式', 'error');
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleBlink(idx, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      imageCache[dataUrl] = img;
+      state.blinkFrames[idx] = dataUrl;
+      const zone = document.getElementById('zone-blink-' + idx);
+      markZoneFilled(zone, dataUrl);
+      if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+      showToast('✓ 已上传眨眼帧 ' + (idx+1), 'success');
+    };
+    img.onerror = () => showToast('图片加载失败，请使用 JPG / PNG / WebP 格式', 'error');
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ==================== AUDIO HANDLING ====================
+async function handleAudio(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  state.audioBlob = file;
+  document.getElementById('audioName').textContent = file.name;
+  document.getElementById('audioUpload').classList.add('filled');
+  const url = URL.createObjectURL(file);
+  document.getElementById('audioPlayer').src = url;
+
+  // Decode for waveform
+  const arrayBuffer = await file.arrayBuffer();
+  if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  state.audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+  state.audioDuration = state.audioBuffer.duration;
+  showToast('音频加载成功，时长 ' + state.audioDuration.toFixed(2) + 's', 'success');
+}
+
+// ==================== ROMAJI PARSING ====================
+function extractVowel(syllable) {
+  return extractVowelForLang(syllable, state.lang);
+}
+
+// EN phoneme keywords user can type in romaji input for explicit mouth shape
+const EN_PHONEME_KEYS = ['schwa','ae','uu','oo','th','f','w','m'];
+// Fallback: if image not uploaded, use closest base vowel
+const EN_PHONEME_FALLBACK = {
+  schwa: 'idle', ae: 'a', uu: 'u', oo: 'o', w: 'u', f: 'idle', th: 'idle', m: 'idle'
+};
+
+// Arpabet → mouth key mapping
+const ARPABET_MAP = {
+  // Vowels
+  'AA': 'a', 'AA0': 'a', 'AA1': 'a', 'AA2': 'a',
+  'AE': 'ae', 'AE0': 'ae', 'AE1': 'ae', 'AE2': 'ae',
+  'AH': 'schwa', 'AH0': 'schwa', 'AH1': 'schwa', 'AH2': 'schwa',
+  'AO': 'oo', 'AO0': 'oo', 'AO1': 'oo', 'AO2': 'oo',
+  'AW': 'a', 'AW0': 'a', 'AW1': 'a', 'AW2': 'a',
+  'AY': 'a', 'AY0': 'a', 'AY1': 'a', 'AY2': 'a',
+  'EH': 'e', 'EH0': 'e', 'EH1': 'e', 'EH2': 'e',
+  'ER': 'schwa', 'ER0': 'schwa', 'ER1': 'schwa', 'ER2': 'schwa',
+  'EY': 'e', 'EY0': 'e', 'EY1': 'e', 'EY2': 'e',
+  'IH': 'i', 'IH0': 'i', 'IH1': 'i', 'IH2': 'i',
+  'IY': 'i', 'IY0': 'i', 'IY1': 'i', 'IY2': 'i',
+  'OW': 'o', 'OW0': 'o', 'OW1': 'o', 'OW2': 'o',
+  'OY': 'o', 'OY0': 'o', 'OY1': 'o', 'OY2': 'o',
+  'UH': 'uu', 'UH0': 'uu', 'UH1': 'uu', 'UH2': 'uu',
+  'UW': 'u', 'UW0': 'u', 'UW1': 'u', 'UW2': 'u',
+  // Consonants
+  'B': 'm', 'P': 'm', 'M': 'm',
+  'F': 'f', 'V': 'f',
+  'TH': 'th', 'DH': 'th',
+  'W': 'w',
+  // All others → idle
+};
+
+function isArpabet(token) {
+  // Arpabet tokens are uppercase letters + optional digit
+  return /^[A-Z]{1,3}[012]?$/.test(token);
+}
+
+function extractVowelForLang(syllable, lang) {
+  const s = syllable.trim();
+  if (!s) return null;
+  // Universal mode: any voiced syllable = 'open'
+  if (lang === 'universal') return 'open';
+  const su = s.toUpperCase();
+  // Arpabet detection (uppercase tokens)
+  if (lang === 'en' && isArpabet(su)) {
+    if (su === '|') return null; // word separator
+    return ARPABET_MAP[su] || 'idle';
+  }
+  const sl = s.toLowerCase();
+  if (lang === 'en' && EN_PHONEME_KEYS.includes(sl)) return sl;
+  if (sl === 'n' || sl === 'nn' || sl === 'm') return lang === 'en' ? 'm' : 'idle';
+  for (let i = sl.length - 1; i >= 0; i--) {
+    if ('aiueo'.includes(sl[i])) return sl[i];
+  }
+  return lang === 'en' ? 'idle' : null;
+}
+
+function parseRomaji(text) {
+  if (state.charMode === 'multi') {
+    const result = [];
+    for (const line of text.split('\n')) {
+      // Match [N] or [N:lang] prefix
+      const m = line.match(/^\[(\d+)(?::([a-z]+))?\]\s*(.*)/);
+      if (!m) continue;
+      const charIdx = parseInt(m[1]);
+      const lineLang = m[2] || state.lang; // per-line lang override, fallback to global
+      const words = m[3].trim().split(/\s+/);
+      for (const w of words) {
+        const vowel = extractVowelForLang(w, lineLang);
+        if (vowel !== null) result.push({ syllable: w, vowel, charIdx, lang: lineLang });
+      }
+    }
+    return result;
+  }
+  // Single-char
+  return text.trim().split(/\s+/).map(s => ({
+    syllable: s,
+    vowel: extractVowel(s),
+    charIdx: 1,
+    lang: state.lang,
+  })).filter(x => x.vowel !== null);
+}
+
+// ==================== AUDIO ANALYSIS ====================
+function analyzeAudio(buffer) {
+  const data = buffer.getChannelData(0);
+  const sr = buffer.sampleRate;
+  const windowSize = Math.floor(sr * 0.02); // 20ms windows
+  const hopSize = Math.floor(sr * 0.01);    // 10ms hop
+  const energies = [];
+  for (let i = 0; i < data.length - windowSize; i += hopSize) {
+    let sum = 0;
+    for (let j = 0; j < windowSize; j++) sum += data[i+j] ** 2;
+    energies.push(Math.sqrt(sum / windowSize));
+  }
+
+  const sliderVal = parseInt(document.getElementById('voiceThreshold')?.value || 5);
+  const mult = (typeof VOICE_THRESH_MULTS !== 'undefined' && VOICE_THRESH_MULTS[sliderVal]) || 0.08;
+
+  // Pre-compute global stats once
+  const nonZeroAll = energies.filter(function(x){ return x > 0; }).sort(function(a,b){ return a-b; });
+  const globalMax = nonZeroAll[nonZeroAll.length - 1] || 1;
+  const globalMedian = nonZeroAll[Math.floor(nonZeroAll.length * 0.5)] || 0;
+
+  // Hard floor: truly inaudible noise — set very low (0.3% of global max)
+  // Only filters out absolute silence, not quiet speech
+  const hardFloor = globalMax * 0.003;
+
+  // Global threshold (original behaviour for normal-volume speech)
+  const globalThresh = Math.max(globalMedian * mult, globalMax * 0.005);
+
+  // Local adaptive: sliding window ±1.5s
+  // Helps quiet endings be detected relative to local context
+  const localWindowFrames = Math.floor(1.5 / 0.01);
+  const voiced = energies.map(function(e, i) {
+    if (e < hardFloor) return false; // absolute silence
+    const from = Math.max(0, i - localWindowFrames);
+    const to = Math.min(energies.length - 1, i + localWindowFrames);
+    let localMax = 0;
+    for (let k = from; k <= to; k++) {
+      if (energies[k] > localMax) localMax = energies[k];
+    }
+    const localThresh = localMax * mult;
+    // Use MORE LENIENT (lower) threshold of local vs global
+    // so quiet endings (low localMax) get a lower bar to pass
+    const threshold = Math.min(localThresh, globalThresh);
+    return e > threshold;
+  });
+
+  // Smooth: require 3 consecutive frames to flip state (avoids 20ms glitches)
+  const smoothed = voiced.slice();
+  for (let i = 2; i < voiced.length - 2; i++) {
+    const w = voiced[i-2] + voiced[i-1] + voiced[i] + voiced[i+1] + voiced[i+2];
+    smoothed[i] = w >= 3;
+  }
+
+  // Merge into regions
+  const regions = [];
+  let regionStart = 0;
+  let curVoiced = smoothed[0];
+  for (let i = 1; i < smoothed.length; i++) {
+    if (smoothed[i] !== curVoiced) {
+      regions.push({ start: regionStart * 0.01, end: i * 0.01, voiced: curVoiced });
+      regionStart = i;
+      curVoiced = smoothed[i];
+    }
+  }
+  const actualDuration = buffer.duration;
+  regions.push({ start: regionStart * 0.01, end: actualDuration, voiced: curVoiced });
+  for (const r of regions) {
+    r.end = Math.min(r.end, actualDuration);
+    r.start = Math.min(r.start, actualDuration);
+  }
+  return regions;
+}
+
+// ==================== GENERATE TIMELINE ====================
+function generateTimeline() {
+  if (!state.audioBuffer) { showToast('❌ 请先上传音频文件', 'error'); return; }
+  if (!state.images.idle) { showToast('❌ 请先上传 IDLE（待机）图片，就是最上方单独那个框', 'error'); return; }
+  if (state.lang === 'universal') {
+    if (!state.images.open && !state.images.a) {
+      showToast('❌ 通用模式请上传 OPEN（张嘴）图片', 'error'); return;
+    }
+  } else {
+    const missingVowels = ['a','i','u','e','o'].filter(v => !state.images[v]);
+    if (missingVowels.length === 5) { showToast('❌ 请至少上传一个元音口型图片（A/I/U/E/O）', 'error'); return; }
+  }
+
+  const regions = analyzeAudio(state.audioBuffer);
+  const voicedRegions = regions.filter(r => r.voiced);
+  state.segments = [];
+
+  if (state.lang === 'universal') {
+    // Universal mode: voiced = open, silence = idle
+    // Multi-char: split voiced regions alternating by char timing or just assign charIdx=1
+    // (universal multi-char: all voiced segs get charIdx based on multi-char parsing if available,
+    //  otherwise default to 1 — user can manually adjust in timeline)
+    const charsUni = state.charMode === 'multi' ? [1, 2] : [1];
+    for (const region of voicedRegions) {
+      // In multi-char universal, assign to char 1 by default
+      // (user can tell chars apart via timeline manual edit)
+      state.segments.push({ type: 'open', start: region.start, end: region.end, charIdx: 1 });
+    }
+  } else {
+    const romajiText = document.getElementById('romajiInput').value.trim();
+    if (!romajiText) { showToast('请输入罗马音文本', 'error'); return; }
+
+    const syllables = parseRomaji(romajiText);
+    if (syllables.length === 0) { showToast('未能识别任何元音，请检查罗马音格式', 'error'); return; }
+
+    const totalVoicedDur = voicedRegions.reduce((s, r) => s + (r.end - r.start), 0);
+    const durPerSyllable = totalVoicedDur / syllables.length;
+
+    let sylIdx = 0;
+    for (let ri = 0; ri < voicedRegions.length; ri++) {
+      const region = voicedRegions[ri];
+      const regionDur = region.end - region.start;
+      const isLastRegion = (ri === voicedRegions.length - 1);
+      let sylCount;
+      if (isLastRegion) {
+        sylCount = syllables.length - sylIdx;
+      } else {
+        sylCount = Math.max(1, Math.round(regionDur / durPerSyllable));
+      }
+      if (sylCount <= 0) continue;
+      const sylDur = regionDur / sylCount;
+      for (let i = 0; i < sylCount && sylIdx < syllables.length; i++, sylIdx++) {
+        const s = region.start + i * sylDur;
+        const e = Math.min(s + sylDur, region.end);
+        const vowel = syllables[sylIdx].vowel;
+        if (vowel && vowel !== 'idle') {
+          state.segments.push({ type: vowel, start: s, end: e, charIdx: syllables[sylIdx].charIdx || 1 });
+        }
+      }
+    }
+  }
+
+  // Add blink events — each character only blinks during their OWN silence
+  // (no mouth segments for that character at that time)
+  const blinkFrameCount = state.blinkFrames.filter(Boolean).length;
+  const blinkThreshold = parseFloat(document.getElementById('blinkThreshold').value) || 1.0;
+
+  const charsForBlink = state.charMode === 'multi' ? [1, 2] : [null];
+
+  for (const blinkCi of charsForBlink) {
+    const hasFrames = blinkCi
+      ? (state.charImages[blinkCi]?.['blink'] || blinkFrameCount > 0)
+      : blinkFrameCount > 0;
+    if (!hasFrames) continue;
+
+    const ciBlinkCount = blinkCi
+      ? (['blink0','blink1','blink2']
+          .map(k => state.emotionImages[blinkCi]?.['default']?.[k]).filter(Boolean).length
+         || (state.charImages[blinkCi]?.['blink'] ? 1 : 0)
+         || blinkFrameCount)
+      : blinkFrameCount;
+    if (!ciBlinkCount) continue;
+
+    const blinkDur = ciBlinkCount * 0.06;
+    // Small random timing offset so chars don't accidentally sync up
+    const jitter = blinkCi === 2 ? (0.25 + Math.random() * 0.4) : 0;
+
+    // Build this character's "busy" intervals (mouth moving = can't blink)
+    const busySegs = state.segments.filter(function(s) {
+      if (s.type === 'blink') return false;
+      if (blinkCi === null) return true; // single char: all segs are busy
+      return (s.charIdx === blinkCi) || (!s.charIdx); // untagged segs count too
+    }).sort(function(a, b) { return a.start - b.start; });
+
+    // Find gaps between busy segments that are long enough for a blink
+    // Build gap list from 0 → audioDuration
+    const busyMerged = [];
+    for (const s of busySegs) {
+      if (busyMerged.length && s.start <= busyMerged[busyMerged.length-1].end) {
+        busyMerged[busyMerged.length-1].end = Math.max(busyMerged[busyMerged.length-1].end, s.end);
+      } else {
+        busyMerged.push({ start: s.start, end: s.end });
+      }
+    }
+
+    // Silent gaps for this character
+    const silentGaps = [];
+    let cursor = 0;
+    for (const b of busyMerged) {
+      if (b.start - cursor >= blinkThreshold) {
+        silentGaps.push({ start: cursor, end: b.start });
+      }
+      cursor = Math.max(cursor, b.end);
+    }
+    if (state.audioDuration - cursor >= blinkThreshold) {
+      silentGaps.push({ start: cursor, end: state.audioDuration });
+    }
+
+    // Insert blinks into each gap
+    for (const gap of silentGaps) {
+      let blinkAt = gap.start + (gap.end - gap.start) * 0.3 + jitter;
+      if (blinkAt + blinkDur > gap.end - 0.1) {
+        blinkAt = gap.start + 0.1;
+      }
+      if (blinkAt + blinkDur > gap.end - 0.05) continue; // gap too tight
+      const seg = { type: 'blink', start: blinkAt, end: blinkAt + blinkDur };
+      if (blinkCi) seg.charIdx = blinkCi;
+      state.segments.push(seg);
+
+      // Extra blinks in long gaps, staggered per char
+      const blinkInterval = 2.8 + (blinkCi === 2 ? 0.35 : 0);
+      let nextBlink = blinkAt + blinkInterval;
+      while (nextBlink + blinkDur < gap.end - 0.15) {
+        const s = { type: 'blink', start: nextBlink, end: nextBlink + blinkDur };
+        if (blinkCi) s.charIdx = blinkCi;
+        state.segments.push(s);
+        nextBlink += blinkInterval;
+      }
+    }
+  }
+
+  // Fix tail: clamp last segment's end to audioDuration so nothing is cut off
+  if (state.segments.length > 0) {
+    const lastSeg = state.segments[state.segments.length - 1];
+    if (lastSeg.end < state.audioDuration - 0.05) {
+      // Nothing covers the tail — add an idle stretch (no segment needed, idle is default)
+    }
+    // Also clamp any segment that overshoots
+    state.segments.forEach(s => { s.end = Math.min(s.end, state.audioDuration); });
+  }
+
+  state.segments.sort((a, b) => a.start - b.start);
+
+  // Build subtitles
+  state.subtitles = buildSubtitles(state.segments);
+
+  // Auto-detect emotions
+  autoDetectEmotions();
+
+  // Render subtitle track UI
+  renderSubtitleTrack();
+  renderStickerTrack();
+  // Show/hide sticker char selector
+  const sCI = document.getElementById('newStickerCharIdx');
+  if (sCI) sCI.style.display = state.charMode === 'multi' ? '' : 'none';
+
+  // Render emotion track
+  renderEmotionTrack();
+
+  // Check romaji ↔ original text alignment (non-blocking, warn only)
+  checkAlignment(romajiText, syllables);
+
+  // Show timeline
+  document.getElementById('timelineSection').classList.add('visible');
+  document.getElementById('stepPreview').style.display = 'block';
+
+  drawWaveform();
+  drawTimeline();
+  renderPreviewFrame(0);
+  showToast('时间轴生成完成！共 ' + state.segments.length + ' 个片段' + (state.subtitles.length ? '，' + state.subtitles.length + ' 条字幕' : ''), 'success');
+}
+
+// ==================== WAVEFORM ====================
+function drawWaveform() {
+  const canvas = document.getElementById('waveformCanvas');
+  const container = canvas.parentElement;
+  canvas.width = container.clientWidth;
+  canvas.height = 60;
+  const ctx = canvas.getContext('2d');
+  if (!state.audioBuffer) return;
+
+  const data = state.audioBuffer.getChannelData(0);
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#1e1e2a';
+  ctx.fillRect(0, 0, w, h);
+
+  const step = Math.ceil(data.length / w);
+  ctx.fillStyle = '#818cf8';
+  for (let x = 0; x < w; x++) {
+    let min = 1, max = -1;
+    for (let j = 0; j < step; j++) {
+      const d = data[x * step + j] || 0;
+      if (d < min) min = d;
+      if (d > max) max = d;
+    }
+    const yMin = (1 + min) / 2 * h;
+    const yMax = (1 + max) / 2 * h;
+    ctx.fillRect(x, yMax, 1, Math.max(1, yMin - yMax));
+  }
+
+  // Click to seek
+  canvas.onclick = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const t = (x / w) * state.audioDuration;
+    seekTo(t);
+  };
+}
+
+// ==================== TIMELINE CANVAS ====================
+const TRACK_H = 28;
+const TRACK_LABELS = { a:'A', i:'I', u:'U', e:'E', o:'O', idle:'—', blink:'👁' };
+const TRACK_ORDER = ['a','i','u','e','o','blink'];
+const TRACK_COLORS = {
+  a: '#c084fc', i: '#818cf8', u: '#34d399', e: '#fbbf24', o: '#f87171', blink: '#94a3b8'
+};
+
+function timeToX(t) {
+  return t * state.pixelsPerSecond - state.timelineScroll;
+}
+function xToTime(x) {
+  return (x + state.timelineScroll) / state.pixelsPerSecond;
+}
+
+function drawTimeline() {
+  const container = document.querySelector('.timeline-tracks');
+  const canvas = document.getElementById('timelineCanvas');
+  const totalWidth = Math.max(container.clientWidth, state.audioDuration * state.pixelsPerSecond + 60);
+  canvas.width = totalWidth;
+  canvas.height = TRACK_ORDER.length * TRACK_H + 20;
+  document.querySelector('.timeline-tracks').style.height = canvas.height + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Track backgrounds
+  TRACK_ORDER.forEach((track, ti) => {
+    const y = 20 + ti * TRACK_H;
+    ctx.fillStyle = ti % 2 === 0 ? '#16161e' : '#1a1a26';
+    ctx.fillRect(0, y, canvas.width, TRACK_H);
+    ctx.fillStyle = '#3a3a5e';
+    ctx.fillRect(0, y + TRACK_H - 1, canvas.width, 1);
+  });
+
+  // Time ruler
+  ctx.fillStyle = '#1e1e2a';
+  ctx.fillRect(0, 0, canvas.width, 20);
+  ctx.fillStyle = '#64748b';
+  ctx.font = '10px Rajdhani, monospace';
+  const step = state.pixelsPerSecond >= 100 ? 0.5 : 1;
+  for (let t = 0; t <= state.audioDuration + step; t += step) {
+    const x = timeToX(t);
+    if (x < 0 || x > canvas.width) continue;
+    ctx.fillRect(x, 14, 1, 6);
+    ctx.fillText(t.toFixed(1) + 's', x + 2, 12);
+  }
+
+  // Track labels on left
+  TRACK_ORDER.forEach((track, ti) => {
+    const y = 20 + ti * TRACK_H;
+    ctx.fillStyle = TRACK_COLORS[track];
+    ctx.font = 'bold 11px Rajdhani, monospace';
+    ctx.fillText(TRACK_LABELS[track] || track.toUpperCase(), 4, y + TRACK_H / 2 + 4);
+  });
+
+  // Segments
+  state.segments.forEach((seg, idx) => {
+    const ti = TRACK_ORDER.indexOf(seg.type);
+    if (ti < 0) return;
+    const y = 20 + ti * TRACK_H + 2;
+    const x = timeToX(seg.start);
+    const w = Math.max(4, (seg.end - seg.start) * state.pixelsPerSecond);
+
+    const col = TRACK_COLORS[seg.type] || '#888';
+    ctx.fillStyle = idx === state.selectedSeg
+      ? col
+      : col + '99';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, TRACK_H - 4, 3);
+    ctx.fill();
+
+    // Border for selected
+    if (idx === state.selectedSeg) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, TRACK_H - 4, 3);
+      ctx.stroke();
+    }
+
+    // Label inside segment
+    if (w > 16) {
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 10px Rajdhani, monospace';
+      ctx.fillText(seg.type.toUpperCase(), x + 4, y + TRACK_H / 2 + 1);
+    }
+
+    // Drag handles
+    ctx.fillStyle = '#fff6';
+    ctx.fillRect(x, y + 2, 3, TRACK_H - 8);
+    ctx.fillRect(x + w - 3, y + 2, 3, TRACK_H - 8);
+  });
+
+  // Playhead
+  const px = timeToX(state.currentTime);
+  ctx.strokeStyle = '#c084fc';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px, 0);
+  ctx.lineTo(px, canvas.height);
+  ctx.stroke();
+}
+
+// Timeline mouse interaction
+const timelineCanvas = document.getElementById('timelineCanvas');
+const timelineTracks = document.querySelector('.timeline-tracks');
+
+timelineTracks.addEventListener('mousedown', (e) => {
+  const rect = timelineCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const t = xToTime(mx);
+
+  // Find clicked segment
+  let hitIdx = -1;
+  let hitEdge = 'move';
+  const EDGE_THRESH = 6;
+
+  for (let idx = 0; idx < state.segments.length; idx++) {
+    const seg = state.segments[idx];
+    const ti = TRACK_ORDER.indexOf(seg.type);
+    if (ti < 0) continue;
+    const y = 20 + ti * TRACK_H + 2;
+    const x = timeToX(seg.start);
+    const w = Math.max(4, (seg.end - seg.start) * state.pixelsPerSecond);
+
+    if (my >= y && my <= y + TRACK_H - 4) {
+      if (Math.abs(mx - x) < EDGE_THRESH) { hitIdx = idx; hitEdge = 'start'; break; }
+      if (Math.abs(mx - (x + w)) < EDGE_THRESH) { hitIdx = idx; hitEdge = 'end'; break; }
+      if (mx >= x && mx <= x + w) { hitIdx = idx; hitEdge = 'move'; break; }
+    }
+  }
+
+  if (hitIdx >= 0) {
+    state.selectedSeg = hitIdx;
+    const seg = state.segments[hitIdx];
+    state.dragState = { segIdx: hitIdx, edge: hitEdge, startX: mx,
+      origStart: seg.start, origEnd: seg.end };
+    updateSelectedInfo();
+  } else {
+    state.selectedSeg = -1;
+    document.getElementById('selectedInfo').classList.remove('visible');
+    // Seek
+    seekTo(Math.max(0, Math.min(t, state.audioDuration)));
+  }
+  drawTimeline();
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!state.dragState) return;
+  const rect = timelineCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const dx = mx - state.dragState.startX;
+  const dt = dx / state.pixelsPerSecond;
+  const seg = state.segments[state.dragState.segIdx];
+  const minDur = 0.02;
+
+  if (state.dragState.edge === 'start') {
+    seg.start = Math.max(0, Math.min(state.dragState.origStart + dt, seg.end - minDur));
+  } else if (state.dragState.edge === 'end') {
+    seg.end = Math.max(seg.start + minDur, Math.min(state.dragState.origEnd + dt, state.audioDuration));
+  } else {
+    const dur = state.dragState.origEnd - state.dragState.origStart;
+    seg.start = Math.max(0, Math.min(state.dragState.origStart + dt, state.audioDuration - dur));
+    seg.end = seg.start + dur;
+  }
+  updateSelectedInfo();
+  drawTimeline();
+});
+
+window.addEventListener('mouseup', () => { state.dragState = null; });
+
+// Scroll sync
+timelineTracks.addEventListener('scroll', () => {
+  state.timelineScroll = timelineTracks.scrollLeft;
+  drawTimeline();
+});
+
+// Wheel zoom on timeline (Ctrl+scroll or just scroll-X = pan, scroll-Y = zoom)
+timelineTracks.addEventListener('wheel', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
+    const newPPS = Math.max(20, Math.min(800, state.pixelsPerSecond * factor));
+    // Zoom toward mouse position
+    const rect = timelineCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const tAtMouse = xToTime(mx);
+    state.pixelsPerSecond = newPPS;
+    state.timelineScroll = Math.max(0, tAtMouse * newPPS - mx);
+    timelineTracks.scrollLeft = state.timelineScroll;
+    drawTimeline();
+  }
+}, { passive: false });
+
+// Keyboard zoom: + / - keys when timeline is focused
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === '+' || e.key === '=') {
+    state.pixelsPerSecond = Math.min(800, state.pixelsPerSecond * 1.2);
+    drawTimeline();
+  } else if (e.key === '-') {
+    state.pixelsPerSecond = Math.max(20, state.pixelsPerSecond * 0.83);
+    drawTimeline();
+  }
+});
+
+function updateSelectedInfo() {
+  const idx = state.selectedSeg;
+  if (idx < 0) return;
+  const seg = state.segments[idx];
+  const info = document.getElementById('selectedInfo');
+  info.classList.add('visible');
+  document.getElementById('selLabel').textContent = seg.type.toUpperCase();
+  document.getElementById('selTime').textContent = seg.start.toFixed(2) + 's — ' + seg.end.toFixed(2) + 's';
+  document.getElementById('selStart').value = seg.start.toFixed(3);
+  document.getElementById('selEnd').value = seg.end.toFixed(3);
+}
+
+function updateSelectedSeg() {
+  if (state.selectedSeg < 0) return;
+  const seg = state.segments[state.selectedSeg];
+  seg.start = parseFloat(document.getElementById('selStart').value) || seg.start;
+  seg.end = parseFloat(document.getElementById('selEnd').value) || seg.end;
+  if (seg.end <= seg.start) seg.end = seg.start + 0.02;
+  drawTimeline();
+}
+
+function deleteSelectedSeg() {
+  if (state.selectedSeg < 0) return;
+  state.segments.splice(state.selectedSeg, 1);
+  state.selectedSeg = -1;
+  document.getElementById('selectedInfo').classList.remove('visible');
+  drawTimeline();
+}
+
+function addSegment() {
+  state.segments.push({ type: 'a', start: state.currentTime, end: state.currentTime + 0.2 });
+  state.segments.sort((a, b) => a.start - b.start);
+  state.selectedSeg = state.segments.findIndex(s => s.start === state.currentTime);
+  updateSelectedInfo();
+  drawTimeline();
+}
+
+// ==================== EMOTION ====================
+const EMOTION_LABELS = { happy:'😊', sad:'😢', bored:'😑', nervous:'😰', custom:'✨' };
+const EMOTION_COLORS = { happy:'#fbbf24', sad:'#818cf8', bored:'#94a3b8', nervous:'#f87171', custom:'#c084fc' };
+const EMOTION_KEYS = ['idle','a','i','u','e','o','blink0','blink1','blink2'];
+const EMOTION_KEY_LABELS = { idle:'IDLE', a:'A', i:'I', u:'U', e:'E', o:'O', blink0:'B1', blink1:'B2', blink2:'B3', open:'OPEN', schwa:'ə', ae:'æ', uu:'ʊ', oo:'ɔ', w:'w', f:'f', th:'th', m:'m' };
+const EMOTION_NAMES = ['happy','sad','bored','nervous','custom'];
+
+let activeEmotionTab = 'happy';
+let activeEmotionCharIdx = 1; // which char's images are being edited
+
+function toggleEmotionPanel() {
+  const body = document.getElementById('emotionPanelBody');
+  const arrow = document.getElementById('emotionPanelArrow');
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  arrow.style.transform = open ? 'rotate(180deg)' : '';
+  if (open) { buildEmotionGrids(); buildAnimControls(); }
+}
+
+function buildEmotionGrids() {
+  const container = document.getElementById('emotionGridContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  for (const emo of EMOTION_NAMES) {
+    const wrap = document.createElement('div');
+    wrap.id = 'emotion-images-' + emo;
+    wrap.style.display = emo === activeEmotionTab ? '' : 'none';
+    const grid = document.createElement('div');
+    grid.id = 'egrid-' + activeEmotionCharIdx + '-' + emo;
+
+    const keysToShow = state.lang === 'universal'
+      ? ['idle','open','blink0','blink1','blink2']
+      : state.lang === 'en'
+        ? EMOTION_KEYS.concat(['schwa','ae','uu','oo','w','f','th','m'])
+        : EMOTION_KEYS;
+
+    // Grid columns: match key count, max 7
+    const cols = Math.min(7, keysToShow.length);
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(' + cols + ',1fr);gap:6px;';
+
+    for (const key of keysToShow) {
+      const zone = document.createElement('div');
+      zone.className = 'upload-zone';
+      zone.id = 'zone-emo-' + activeEmotionCharIdx + '-' + emo + '-' + key;
+      const existing = state.emotionImages[activeEmotionCharIdx]?.[emo]?.[key];
+      if (existing) markZoneFilled(zone, existing);
+      else zone.innerHTML = '<div class="label" style="font-size:10px;">' + EMOTION_KEY_LABELS[key] + '</div>';
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*';
+      inp.style.cssText = 'position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;';
+      const ci = activeEmotionCharIdx, em = emo, k = key;
+      inp.addEventListener('change', function(){ handleEmotionImage(ci, em, k, this); });
+      zone.appendChild(inp);
+      grid.appendChild(zone);
+    }
+    wrap.appendChild(grid);
+    container.appendChild(wrap);
+  }
+}
+
+function switchEmotionCharTab(ci) {
+  activeEmotionCharIdx = ci;
+  document.getElementById('echarTab-1').classList.toggle('active', ci === 1);
+  document.getElementById('echarTab-2').classList.toggle('active', ci === 2);
+  buildEmotionGrids();
+}
+
+function switchEmotionTab(emo) {
+  activeEmotionTab = emo;
+  for (const e of EMOTION_NAMES) {
+    document.getElementById('etab-' + e).classList.toggle('active', e === emo);
+    const el = document.getElementById('emotion-images-' + e);
+    if (el) el.style.display = e === emo ? '' : 'none';
+  }
+  buildAnimControls();
+}
+
+function handleEmotionImage(ci, emo, key, input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = ev.target.result;
+    const img = new Image();
+    img.onload = function() {
+      imageCache[dataUrl] = img;
+      if (!state.emotionImages[ci]) state.emotionImages[ci] = {};
+      if (!state.emotionImages[ci][emo]) state.emotionImages[ci][emo] = {};
+      state.emotionImages[ci][emo][key] = dataUrl;
+      const zone = document.getElementById('zone-emo-' + ci + '-' + emo + '-' + key);
+      if (zone) markZoneFilled(zone, dataUrl);
+      showToast('✓ 角色' + ci + ' ' + (EMOTION_LABELS[emo]||emo) + ' ' + EMOTION_KEY_LABELS[key] + ' 已上传', 'success');
+    };
+    img.onerror = function(){ showToast('图片加载失败', 'error'); };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Show/hide char selector and char2 track based on charMode
+function updateEmotionCharMode() {
+  const isMulti = state.charMode === 'multi';
+  const charSel = document.getElementById('emotionCharSelector');
+  const track2 = document.getElementById('emotionTrack2Wrap');
+  const newCharSel = document.getElementById('newEmotionCharIdx');
+  const label1 = document.getElementById('emotionTrackLabel1');
+  if (charSel) charSel.style.display = isMulti ? '' : 'none';
+  if (track2) track2.style.display = isMulti ? '' : 'none';
+  if (newCharSel) newCharSel.style.display = isMulti ? '' : 'none';
+  if (label1) label1.textContent = isMulti ? '角色 1 情绪轨' : '情绪轨';
+}
+
+// Returns emotion for a given charIdx at time t
+function getEmotionAt(t, charIdx) {
+  const ci = charIdx || 1;
+  const seg = state.emotionSegments.find(function(s){
+    return s.charIdx === ci && t >= s.start && t < s.end;
+  });
+  return seg ? seg.emotion : 'default';
+}
+
+// Returns image src for key at time t for given charIdx
+function getEmotionImgSrc(key, t, charIdx) {
+  const ci = charIdx || 1;
+  const emo = getEmotionAt(t, ci);
+  if (emo && emo !== 'default') {
+    const src = state.emotionImages[ci]?.[emo]?.[key];
+    if (src) return src;
+    // EN phoneme: try fallback key in emotion images
+    if (EN_PHONEME_FALLBACK[key]) {
+      const fbSrc = state.emotionImages[ci]?.[emo]?.[EN_PHONEME_FALLBACK[key]];
+      if (fbSrc) return fbSrc;
+    }
+  }
+  if (key.startsWith('blink')) {
+    const bi = parseInt(key.replace('blink',''));
+    return state.blinkFrames[bi] || null;
+  }
+  // EN phoneme fallback to base vowel
+  if (EN_PHONEME_FALLBACK[key]) {
+    return state.images[EN_PHONEME_FALLBACK[key]] || state.images.idle || null;
+  }
+  return state.images[key] || null;
+}
+
+// Auto-detect emotions from audio — assigns to charIdx=1 (or all chars)
+function autoDetectEmotions() {
+  if (!state.audioBuffer) return;
+  const data = state.audioBuffer.getChannelData(0);
+  const sr = state.audioBuffer.sampleRate;
+  const winSize = Math.floor(sr * 0.5);
+  const hop = Math.floor(sr * 0.25);
+  const frames = [];
+  for (let i = 0; i < data.length - winSize; i += hop) {
+    let rms = 0, zcr = 0;
+    for (let j = 0; j < winSize; j++) {
+      rms += data[i+j] ** 2;
+      if (j > 0 && (data[i+j] >= 0) !== (data[i+j-1] >= 0)) zcr++;
+    }
+    rms = Math.sqrt(rms / winSize);
+    zcr = zcr / winSize;
+    frames.push({ t: i / sr, rms, zcr });
+  }
+  if (!frames.length) return;
+  const maxRms = Math.max(...frames.map(function(f){ return f.rms; })) || 1;
+  const maxZcr = Math.max(...frames.map(function(f){ return f.zcr; })) || 1;
+  const labeled = frames.map(function(f) {
+    const e = f.rms / maxRms, z = f.zcr / maxZcr;
+    if (e > 0.6 && z > 0.5) return 'nervous';
+    if (e > 0.5) return 'happy';
+    if (e < 0.2) return 'bored';
+    if (e < 0.4 && z < 0.3) return 'sad';
+    return 'default';
+  });
+  // Build segments for charIdx=1 (single) or both chars (multi)
+  const charsToFill = state.charMode === 'multi' ? [1, 2] : [1];
+  state.emotionSegments = state.emotionSegments.filter(function(s){
+    return !charsToFill.includes(s.charIdx);
+  });
+  for (const ci of charsToFill) {
+    let cur = labeled[0], segStart = frames[0].t;
+    for (let i = 1; i < labeled.length; i++) {
+      if (labeled[i] !== cur) {
+        if (frames[i].t - segStart >= 1.0 && cur !== 'default') {
+          state.emotionSegments.push({ start: segStart, end: frames[i].t, emotion: cur, charIdx: ci });
+        }
+        cur = labeled[i]; segStart = frames[i].t;
+      }
+    }
+    const lastEnd = state.audioDuration;
+    if (lastEnd - segStart >= 1.0 && cur !== 'default') {
+      state.emotionSegments.push({ start: segStart, end: lastEnd, emotion: cur, charIdx: ci });
+    }
+  }
+}
+
+// ── Draw one emotion canvas (for charIdx ci) ──
+function drawEmotionCanvas(canvasId, containerId, ci) {
+  const container = document.getElementById(containerId);
+  const canvas = document.getElementById(canvasId);
+  if (!container || !canvas) return;
+  const totalW = Math.max(container.clientWidth, state.audioDuration * state.pixelsPerSecond + 60);
+  canvas.width = totalW;
+  canvas.height = 52;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#16161e';
+  ctx.fillRect(0, 0, totalW, 52);
+  ctx.fillStyle = '#2a2a3e';
+  ctx.fillRect(0, 4, totalW, 44);
+  ctx.fillStyle = '#3a3a5e';
+  ctx.font = '10px Rajdhani,monospace';
+  ctx.fillText('默认', 4, 28);
+  state.emotionSegments.filter(function(s){ return s.charIdx === ci; }).forEach(function(seg, localIdx) {
+    const globalIdx = state.emotionSegments.indexOf(seg);
+    const x = timeToX(seg.start);
+    const w = Math.max(4, (seg.end - seg.start) * state.pixelsPerSecond);
+    const col = EMOTION_COLORS[seg.emotion] || '#888';
+    ctx.fillStyle = globalIdx === selectedEmotionSeg ? col : col + 'bb';
+    ctx.beginPath();
+    ctx.roundRect(x, 6, w, 40, 4);
+    ctx.fill();
+    if (globalIdx === selectedEmotionSeg) {
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect(x, 6, w, 40, 4); ctx.stroke();
+    }
+    const label = (EMOTION_LABELS[seg.emotion]||'') + ' ' + (seg.emotion === 'custom' ? state.customEmotionName : '');
+    if (w > 24) { ctx.fillStyle = '#000'; ctx.font = 'bold 11px Rajdhani,monospace'; ctx.fillText(label, x+5, 30); }
+    ctx.fillStyle = '#fff5';
+    ctx.fillRect(x, 8, 3, 36);
+    ctx.fillRect(x+w-3, 8, 3, 36);
+  });
+  const px = timeToX(state.currentTime);
+  ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, 52); ctx.stroke();
+}
+
+function renderEmotionTrack() {
+  const track = document.getElementById('emotionTrack');
+  if (!state.audioDuration) { track.style.display = 'none'; return; }
+  track.style.display = 'block';
+  updateEmotionCharMode();
+  drawEmotionCanvas('emotionCanvas1', 'emotionTrackContainer1', 1);
+  if (state.charMode === 'multi') drawEmotionCanvas('emotionCanvas2', 'emotionTrackContainer2', 2);
+}
+
+// Resolve overlaps for same charIdx: the segment at exceptIdx wins,
+// others for same char are clipped or removed.
+function confirmClearEmotionTrack() {
+  if (window.confirm('确定要清空所有情绪片段吗？此操作无法撤销。')) {
+    state.emotionSegments = [];
+    selectedEmotionSeg = -1;
+    document.getElementById('emotionSegInfo').style.display = 'none';
+    renderEmotionTrack();
+    showToast('情绪轨已清空', 'success');
+  }
+}
+
+function resolveEmotionOverlaps(exceptIdx) {
+  const winner = state.emotionSegments[exceptIdx];
+  if (!winner) return;
+  const ci = winner.charIdx;
+  const toRemove = [];
+  for (let i = 0; i < state.emotionSegments.length; i++) {
+    if (i === exceptIdx) continue;
+    const s = state.emotionSegments[i];
+    if (s.charIdx !== ci) continue;
+    if (s.end <= winner.start || s.start >= winner.end) continue;
+    if (s.start >= winner.start && s.end <= winner.end) { toRemove.push(i); continue; }
+    if (s.start < winner.start && s.end > winner.start) {
+      s.end = winner.start;
+      if (s.end - s.start < 0.05) { toRemove.push(i); continue; }
+    }
+    if (s.start < winner.end && s.end > winner.end) {
+      s.start = winner.end;
+      if (s.end - s.start < 0.05) { toRemove.push(i); continue; }
+    }
+  }
+  toRemove.sort(function(a,b){ return b-a; }).forEach(function(i){
+    if (selectedEmotionSeg === i) selectedEmotionSeg = -1;
+    else if (selectedEmotionSeg > i) selectedEmotionSeg--;
+    state.emotionSegments.splice(i, 1);
+  });
+}
+
+function addEmotionSegment() {
+  const emo = document.getElementById('newEmotionType').value;
+  const ci = state.charMode === 'multi'
+    ? parseInt(document.getElementById('newEmotionCharIdx').value || 1)
+    : 1;
+  const t = state.currentTime;
+  const dur = Math.min(3.0, state.audioDuration - t);
+  if (dur < 0.1) return;
+  const newIdx = state.emotionSegments.length;
+  state.emotionSegments.push({ start: t, end: t + dur, emotion: emo, charIdx: ci });
+  resolveEmotionOverlaps(newIdx);
+  renderEmotionTrack();
+}
+
+function deleteEmotionSeg() {
+  if (selectedEmotionSeg < 0) return;
+  state.emotionSegments.splice(selectedEmotionSeg, 1);
+  selectedEmotionSeg = -1;
+  document.getElementById('emotionSegInfo').style.display = 'none';
+  renderEmotionTrack();
+}
+
+function updateEmotionSeg() {
+  if (selectedEmotionSeg < 0) return;
+  const seg = state.emotionSegments[selectedEmotionSeg];
+  seg.emotion = document.getElementById('emotionSegType').value;
+  seg.start = parseFloat(document.getElementById('emotionSegStart').value) || seg.start;
+  seg.end = parseFloat(document.getElementById('emotionSegEnd').value) || seg.end;
+  if (seg.end <= seg.start) seg.end = seg.start + 0.1;
+  resolveEmotionOverlaps(selectedEmotionSeg);
+  renderEmotionTrack();
+  renderPreviewFrame(state.currentTime);
+}
+
+let selectedEmotionSeg = -1;
+let emotionDragState = null;
+
+function setupEmotionCanvasMouse(canvasId, containerId, ci) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.addEventListener('mousedown', function(e) {
+    const canvas = document.getElementById(canvasId);
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left + state.timelineScroll;
+    const EDGE = 6;
+    let hitIdx = -1, hitEdge = 'move';
+    state.emotionSegments.forEach(function(seg, idx) {
+      if (seg.charIdx !== ci) return;
+      const x = seg.start * state.pixelsPerSecond;
+      const w = (seg.end - seg.start) * state.pixelsPerSecond;
+      if (Math.abs(mx - x) < EDGE) { hitIdx = idx; hitEdge = 'start'; }
+      else if (Math.abs(mx - (x+w)) < EDGE) { hitIdx = idx; hitEdge = 'end'; }
+      else if (mx >= x && mx <= x+w) { hitIdx = idx; hitEdge = 'move'; }
+    });
+    if (hitIdx >= 0) {
+      selectedEmotionSeg = hitIdx;
+      const seg = state.emotionSegments[hitIdx];
+      emotionDragState = { idx: hitIdx, edge: hitEdge, startX: mx, origStart: seg.start, origEnd: seg.end };
+      const info = document.getElementById('emotionSegInfo');
+      info.style.display = 'flex';
+      document.getElementById('emotionSegLabel').textContent = EMOTION_LABELS[seg.emotion]||'?';
+      document.getElementById('emotionSegType').value = seg.emotion;
+      document.getElementById('emotionSegStart').value = seg.start.toFixed(2);
+      document.getElementById('emotionSegEnd').value = seg.end.toFixed(2);
+    } else {
+      selectedEmotionSeg = -1;
+      document.getElementById('emotionSegInfo').style.display = 'none';
+    }
+    renderEmotionTrack();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setupEmotionCanvasMouse('emotionCanvas1', 'emotionTrackContainer1', 1);
+  setupEmotionCanvasMouse('emotionCanvas2', 'emotionTrackContainer2', 2);
+
+  window.addEventListener('mousemove', function(e) {
+    if (!emotionDragState) return;
+    const canvasId = state.emotionSegments[emotionDragState.idx]?.charIdx === 2 ? 'emotionCanvas2' : 'emotionCanvas1';
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left + state.timelineScroll;
+    const dt = (mx - emotionDragState.startX) / state.pixelsPerSecond;
+    const seg = state.emotionSegments[emotionDragState.idx];
+    const minD = 0.1;
+    if (emotionDragState.edge === 'start') {
+      seg.start = Math.max(0, Math.min(emotionDragState.origStart + dt, seg.end - minD));
+    } else if (emotionDragState.edge === 'end') {
+      seg.end = Math.max(seg.start + minD, Math.min(emotionDragState.origEnd + dt, state.audioDuration));
+    } else {
+      const dur = emotionDragState.origEnd - emotionDragState.origStart;
+      seg.start = Math.max(0, Math.min(emotionDragState.origStart + dt, state.audioDuration - dur));
+      seg.end = seg.start + dur;
+    }
+    document.getElementById('emotionSegStart').value = seg.start.toFixed(2);
+    document.getElementById('emotionSegEnd').value = seg.end.toFixed(2);
+    renderEmotionTrack();
+  });
+
+  window.addEventListener('mouseup', function() {
+    if (emotionDragState !== null) {
+      resolveEmotionOverlaps(emotionDragState.idx);
+      renderEmotionTrack();
+    }
+    emotionDragState = null;
+  });
+});
+
+// ==================== ANIMATION ====================
+const ANIM_LABEL = {
+  happy:   { jump: '跳动幅度', jumpTip: '音量超过阈值时向上弹跳', walk: '', walkTip: '' },
+  sad:     { jump: '', jumpTip: '', walk: '游走幅度', walkTip: '说话时缓慢飘移' },
+  bored:   { jump: '', jumpTip: '', walk: '', walkTip: '' },
+  nervous: { jump: '', jumpTip: '', walk: '抖动幅度', walkTip: '高频小幅颤抖' },
+  custom:  { jump: '跳动幅度', jumpTip: '音量超过阈值时弹跳', walk: '游走幅度', walkTip: '说话时缓慢飘移' },
+};
+
+function buildAnimControls() {
+  const emo = activeEmotionTab;
+  const container = document.getElementById('emotionAnimControls');
+  if (!container) return;
+  const p = state.emotionAnim[emo];
+  if (!p) { container.innerHTML = '<div style="font-size:11px;color:var(--text3);">此情绪无动画效果</div>'; return; }
+  const L = ANIM_LABEL[emo] || {};
+  let html = '';
+
+  if (emo === 'bored') {
+    html = '<div style="font-size:11px;color:var(--text3);">无聊：完全静止，无动画。</div>';
+  } else {
+    // Jump / bounce (happy, custom)
+    if (emo === 'happy' || emo === 'custom') {
+      html += `<div class="subtitle-pos-row" style="margin-bottom:6px;">
+        <label style="min-width:64px;">${L.jump||'跳动幅度'}</label>
+        <input type="range" id="eaJumpAmp-${emo}" min="0" max="8" step="0.1" value="${p.jumpAmp}"
+          oninput="state.emotionAnim['${emo}'].jumpAmp=parseFloat(this.value);document.getElementById('eaJAv-${emo}').textContent=parseFloat(this.value).toFixed(1)">
+        <span class="subtitle-pos-val" id="eaJAv-${emo}">${p.jumpAmp.toFixed(1)}</span>
+      </div>
+      <div class="subtitle-pos-row" style="margin-bottom:6px;">
+        <label style="min-width:64px;">音量阈值</label>
+        <input type="range" id="eaJumpTh-${emo}" min="0" max="1" step="0.05" value="${p.jumpThresh}"
+          oninput="state.emotionAnim['${emo}'].jumpThresh=parseFloat(this.value);document.getElementById('eaJTv-${emo}').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'">
+        <span class="subtitle-pos-val" id="eaJTv-${emo}">${(p.jumpThresh*100).toFixed(0)}%</span>
+      </div>`;
+    }
+    // Walk / shake (sad, nervous, custom)
+    if (emo === 'sad' || emo === 'nervous' || emo === 'custom') {
+      const walkLabel = emo === 'nervous' ? '抖动幅度' : (L.walk||'游走幅度');
+      html += `<div class="subtitle-pos-row" style="margin-bottom:6px;">
+        <label style="min-width:64px;">${walkLabel}</label>
+        <input type="range" id="eaWalkAmp-${emo}" min="0" max="5" step="0.1" value="${p.walkAmp}"
+          oninput="state.emotionAnim['${emo}'].walkAmp=parseFloat(this.value);document.getElementById('eaWAv-${emo}').textContent=parseFloat(this.value).toFixed(1)">
+        <span class="subtitle-pos-val" id="eaWAv-${emo}">${p.walkAmp.toFixed(1)}</span>
+      </div>`;
+      if (emo !== 'nervous') {
+        html += `<div class="subtitle-pos-row" style="margin-bottom:6px;">
+          <label style="min-width:64px;">触发概率</label>
+          <input type="range" id="eaWalkProb-${emo}" min="0" max="1" step="0.05" value="${p.walkProb}"
+            oninput="state.emotionAnim['${emo}'].walkProb=parseFloat(this.value);document.getElementById('eaWPv-${emo}').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'">
+          <span class="subtitle-pos-val" id="eaWPv-${emo}">${(p.walkProb*100).toFixed(0)}%</span>
+        </div>`;
+      }
+    }
+    html += `<div style="font-size:10px;color:var(--text3);margin-top:2px;">${L.jumpTip||''} ${L.walkTip||''}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+// Called when emotion tab switches — rebuild anim controls
+const _origSwitchEmotionTab = window.switchEmotionTab;
+
+// ── Animation update: called every render frame ──
+// Returns {dx, dy} offset in canvas % for a given char at time t
+function getAnimOffset(ci, t) {
+  const emo = getEmotionAt(t, ci);
+  if (!emo || emo === 'default' || emo === 'bored') {
+    // Decay back to zero
+    const as = state.animState[ci];
+    if (as) { as.offX *= 0.85; as.offY *= 0.85; as.jumpVelY *= 0.8; }
+    return { dx: 0, dy: 0 };
+  }
+
+  const p = state.emotionAnim[emo];
+  if (!p) return { dx: 0, dy: 0 };
+
+  const as = state.animState[ci];
+  if (!as) return { dx: 0, dy: 0 };
+
+  // ── Happy: jump on loud syllables ──
+  if (emo === 'happy' && p.jumpAmp > 0) {
+    // Find current segment energy proxy: segment existence = voiced
+    const isSpeaking = state.segments.some(function(s) {
+      return s.type !== 'blink' && (s.charIdx === ci || !s.charIdx) && t >= s.start && t < s.end;
+    });
+    if (isSpeaking) {
+      // Get current segment index to detect new syllable
+      let curSegIdx = -1;
+      state.segments.forEach(function(s, i) {
+        if (s.type !== 'blink' && (s.charIdx === ci || !s.charIdx) && t >= s.start && t < s.end) curSegIdx = i;
+      });
+      if (curSegIdx !== as.lastSegIdx && curSegIdx >= 0) {
+        as.lastSegIdx = curSegIdx;
+        // Use audio energy at this moment if available
+        let energy = 0.7;
+        if (state.audioBuffer) {
+          const sr = state.audioBuffer.sampleRate;
+          const offset = Math.floor(t * sr);
+          const win = Math.floor(sr * 0.02);
+          const data = state.audioBuffer.getChannelData(0);
+          let s = 0;
+          for (let j = 0; j < win && offset+j < data.length; j++) s += data[offset+j]**2;
+          energy = Math.sqrt(s / win) / 0.1; // normalized rough
+        }
+        if (energy > p.jumpThresh) {
+          as.jumpVelY = -p.jumpAmp * Math.min(1, energy);
+        }
+      }
+    }
+    // Spring physics for jump
+    as.jumpVelY += p.jumpAmp * 0.15; // gravity
+    as.offY += as.jumpVelY;
+    as.offY *= 0.75; // damping
+    as.jumpVelY *= 0.85;
+    as.offX *= 0.9;
+    return { dx: as.offX, dy: as.offY };
+  }
+
+  // ── Nervous: high-freq shake ──
+  if (emo === 'nervous' && p.walkAmp > 0) {
+    as.shakePhase += 0.8 + Math.random() * 0.4;
+    const shake = p.walkAmp * 0.3;
+    as.offX = (Math.sin(as.shakePhase * 1.7) + (Math.random()-0.5) * 0.5) * shake;
+    as.offY = (Math.cos(as.shakePhase * 2.3) + (Math.random()-0.5) * 0.5) * shake * 0.6;
+    return { dx: as.offX, dy: as.offY };
+  }
+
+  // ── Sad / Custom: slow drift on syllable change ──
+  if ((emo === 'sad' || emo === 'custom') && p.walkAmp > 0) {
+    let curSegIdx = -1;
+    state.segments.forEach(function(s, i) {
+      if (s.type !== 'blink' && (s.charIdx === ci || !s.charIdx) && t >= s.start && t < s.end) curSegIdx = i;
+    });
+    if (curSegIdx !== as.lastSegIdx && curSegIdx >= 0) {
+      as.lastSegIdx = curSegIdx;
+      if (Math.random() < p.walkProb) {
+        const amp = p.walkAmp;
+        as.targetX = (Math.random() - 0.5) * 2 * amp;
+        as.targetY = (Math.random() - 0.5) * 2 * amp * 0.6;
+      }
+    }
+    // Smooth lerp toward target
+    as.offX += (as.targetX - as.offX) * 0.08;
+    as.offY += (as.targetY - as.offY) * 0.08;
+    return { dx: as.offX, dy: as.offY };
+  }
+
+  return { dx: 0, dy: 0 };
+}
+
+// ==================== PREVIEW ====================
+function getImage(src) {
+  if (!src) return null;
+  // imageCache is populated by loadImage() on upload - already fully loaded
+  return imageCache[src] || null;
+}
+
+function getImgSrc(key, charIdx) {
+  if (state.charMode === 'multi' && charIdx) {
+    return state.charImages[charIdx]?.[key] || state.charImages[1][key] || null;
+  }
+  return state.images[key] || null;
+}
+
+function updateCharLayout(ci, prop, val) {
+  if (!state.charLayout[ci]) state.charLayout[ci] = { xPct:50, yPct:50, scale:100, layer:ci };
+  state.charLayout[ci][prop] = parseFloat(val);
+  if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+}
+
+function swapCharLayers() {
+  const l1 = state.charLayout[1].layer;
+  const l2 = state.charLayout[2].layer;
+  state.charLayout[1].layer = l2;
+  state.charLayout[2].layer = l1;
+  // Sync sliders
+  const s1 = document.getElementById('c1l');
+  const s2 = document.getElementById('c2l');
+  if (s1) { s1.value = l2; document.getElementById('c1lv').textContent = l2; }
+  if (s2) { s2.value = l1; document.getElementById('c2lv').textContent = l1; }
+  if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+}
+
+// Returns [{ci, src, type}] for ALL characters at time t, sorted by layer
+function getAllFramesAt(t) {
+  if (state.charMode !== 'multi') {
+    // Single char — return one entry using existing logic
+    const f = getFrameAt(t);
+    return [{ ci: 1, src: f.src, type: f.type }];
+  }
+
+  const chars = [1, 2];
+  const result = [];
+
+  for (const ci of chars) {
+    // Find blink for this char — blink segs may have no charIdx (applies to all chars)
+    let found = null;
+    for (const seg of state.segments) {
+      const segCi = seg.charIdx;
+      // Match if charIdx matches OR if blink has no charIdx (global blink)
+      const matches = seg.type === 'blink'
+        ? (segCi === ci || segCi === undefined || segCi === null)
+        : segCi === ci;
+      if (!matches) continue;
+      if (seg.type === 'blink' && t >= seg.start && t < seg.end) {
+        const dur = seg.end - seg.start;
+        const emo = getEmotionAt(t, ci);
+        let blinkFrames = ['blink0','blink1','blink2']
+          .map(function(k){ return state.emotionImages[ci]?.[emo]?.[k] || state.charImages[ci]?.['blink']; })
+          .filter(Boolean);
+        if (!blinkFrames.length) blinkFrames = [state.charImages[ci]?.['blink']].filter(Boolean);
+        // Single-char fallback blink frames
+        if (!blinkFrames.length) blinkFrames = state.blinkFrames.filter(Boolean);
+        if (blinkFrames.length) {
+          const fi = Math.floor(((t - seg.start) / dur) * blinkFrames.length);
+          found = { ci, src: blinkFrames[Math.min(fi, blinkFrames.length-1)], type: 'blink' };
+        }
+        break;
+      }
+    }
+    if (!found) {
+      for (const seg of state.segments) {
+        if (seg.charIdx !== ci) continue;
+        if (seg.type !== 'blink' && t >= seg.start && t < seg.end) {
+          if (seg.type === 'open') {
+            // Universal mode
+            const src = state.charImages[ci]?.['open'] || getImgSrc('idle', ci);
+            found = { ci, src, type: 'open' };
+          } else {
+            const emo = getEmotionAt(t, ci);
+            const src = state.emotionImages[ci]?.[emo]?.[seg.type] || getImgSrc(seg.type, ci);
+            found = { ci, src, type: seg.type };
+          }
+          break;
+        }
+      }
+    }
+    if (!found) {
+      const emo = getEmotionAt(t, ci);
+      const src = state.emotionImages[ci]?.[emo]?.['idle'] || getImgSrc('idle', ci);
+      found = { ci, src, type: 'idle' };
+    }
+    result.push(found);
+  }
+
+  // Sort by layer (ascending = lower layer drawn first = behind)
+  result.sort(function(a, b) {
+    return (state.charLayout[a.ci]?.layer || a.ci) - (state.charLayout[b.ci]?.layer || b.ci);
+  });
+  return result;
+}
+
+function getFrameAt(t) {
+  // Blink
+  for (const seg of state.segments) {
+    if (seg.type === 'blink' && t >= seg.start && t < seg.end) {
+      const dur = seg.end - seg.start;
+      const ci = seg.charIdx || 1;
+      let blinkFrames;
+      if (state.charMode === 'multi') {
+        // Multi: prefer emotion blink for this char, else default char blink
+        const emo = getEmotionAt(t, ci);
+        blinkFrames = ['blink0','blink1','blink2']
+          .map(function(k){ return state.emotionImages[ci]?.[emo]?.[k] || state.charImages[ci]?.['blink']; })
+          .filter(Boolean);
+        if (!blinkFrames.length) blinkFrames = [state.charImages[ci]?.['blink']].filter(Boolean);
+      } else {
+        blinkFrames = ['blink0','blink1','blink2']
+          .map(function(k){ return state.emotionImages[1]?.[getEmotionAt(t,1)]?.[k] || state.blinkFrames[parseInt(k.replace('blink',''))]; })
+          .filter(Boolean);
+        if (!blinkFrames.length) blinkFrames = state.blinkFrames.filter(Boolean);
+      }
+      if (blinkFrames.length > 0) {
+        const frameIdx = Math.floor(((t - seg.start) / dur) * blinkFrames.length);
+        return { type: 'blink', src: blinkFrames[Math.min(frameIdx, blinkFrames.length-1)] };
+      }
+    }
+  }
+  // Vowel / Open
+  for (const seg of state.segments) {
+    if (seg.type !== 'blink' && t >= seg.start && t < seg.end) {
+      const ci = seg.charIdx || 1;
+      // Universal mode uses 'open' type
+      if (seg.type === 'open') {
+        return { type: 'open', src: getOpenSrc(), charIdx: ci };
+      }
+      const src = state.charMode === 'multi'
+        ? (state.emotionImages[ci]?.[getEmotionAt(t,ci)]?.[seg.type] || getImgSrc(seg.type, ci))
+        : getEmotionImgSrc(seg.type, t, 1);
+      return { type: seg.type, src, charIdx: ci };
+    }
+  }
+  // Idle
+  const nearSeg = state.segments.filter(function(s){ return s.type !== 'blink'; })
+    .sort(function(a,b){ return Math.abs(a.start-t) - Math.abs(b.start-t); })[0];
+  const ci = nearSeg ? (nearSeg.charIdx || 1) : 1;
+  const src = state.charMode === 'multi'
+    ? (state.emotionImages[ci]?.[getEmotionAt(t,ci)]?.['idle'] || getImgSrc('idle', ci))
+    : getEmotionImgSrc('idle', t, 1);
+  return { type: 'idle', src, charIdx: ci };
+}
+
+// 'open' type: use state.images.open, fallback to 'a' mouth
+function getOpenSrc() {
+  return state.images.open || state.images.a || state.images.idle || null;
+}
+
+function renderPreviewFrame(t) {
+  const canvas = document.getElementById('previewCanvas');
+  const ctx = canvas.getContext('2d');
+  const bgMode = document.getElementById('bgMode')?.value || 'color';
+  const bgColor = document.getElementById('bgColor')?.value || '#ffffff';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (bgMode === 'transparent') {
+    // Draw checkerboard to indicate transparency in preview
+    const sz = 12;
+    for (let x = 0; x < canvas.width; x += sz) {
+      for (let y = 0; y < canvas.height; y += sz) {
+        ctx.fillStyle = ((x/sz + y/sz) % 2 === 0) ? '#cccccc' : '#ffffff';
+        ctx.fillRect(x, y, sz, sz);
+      }
+    }
+  } else if (bgMode === 'image' && state.bgImage) {
+    const bw = state.bgImage.naturalWidth, bh = state.bgImage.naturalHeight;
+    const scale = Math.max(canvas.width / bw, canvas.height / bh);
+    const dw = bw * scale, dh = bh * scale;
+    ctx.drawImage(state.bgImage, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
+  } else {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  if (state.charMode === 'multi') {
+    const frames = getAllFramesAt(t);
+    for (const f of frames) {
+      if (!f.src) continue;
+      const img = getImage(f.src);
+      if (!img || !img.complete || !img.naturalWidth) continue;
+      const layout = state.charLayout[f.ci] || { xPct:50, yPct:50, scale:100 };
+      const anim = getAnimOffset(f.ci, t);
+      const scaleFactor = (layout.scale / 100) *
+        Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+      const w = img.naturalWidth * scaleFactor;
+      const h = img.naturalHeight * scaleFactor;
+      const x = (canvas.width * (layout.xPct + anim.dx) / 100) - w / 2;
+      const y = (canvas.height * (layout.yPct + anim.dy) / 100) - h / 2;
+      ctx.drawImage(img, x, y, w, h);
+    }
+    // Time overlay (multi)
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(8, 8, 80, 18);
+    ctx.fillStyle = '#c084fc';
+    ctx.font = '11px Rajdhani, monospace';
+    ctx.fillText(t.toFixed(2) + 's', 12, 20);
+  } else {
+    const frame = getFrameAt(t);
+    if (frame.src) {
+      const img = getImage(frame.src);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const anim = getAnimOffset(1, t);
+        const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+        const w = img.naturalWidth * scale;
+        const h = img.naturalHeight * scale;
+        const cx = canvas.width / 2 + (anim.dx / 100) * canvas.width;
+        const cy = canvas.height / 2 + (anim.dy / 100) * canvas.height;
+        ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+      }
+    }
+    // Time overlay (single)
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(8, 8, 80, 18);
+    ctx.fillStyle = '#c084fc';
+    ctx.font = '11px Rajdhani, monospace';
+    ctx.fillText(t.toFixed(2) + 's  ' + (frame.type || '').toUpperCase(), 12, 20);
+  }
+
+  // Subtitle on top of everything
+  const sub = getSubtitleAt(t);
+  if (sub) {
+    const speakingCi = state.charMode === 'multi' ? getSpeakingCharAt(t) : null;
+    drawSubtitle(ctx, sub, canvas.width, canvas.height, speakingCi);
+  }
+
+  // Sticker on top of subtitle
+  drawStickerFrame(ctx, t, canvas.width, canvas.height);
+}
+
+function drawStickerFrame(ctx, t, w, h) {
+  const ci = state.charMode === 'multi' ? (getSpeakingCharAt(t) || 1) : 1;
+  // Check sticker (higher priority than blink — find sticker seg)
+  const stickerSeg = state.stickerSegments
+    ? state.stickerSegments.find(function(s){
+        return (s.charIdx === ci || (!s.charIdx && ci === 1)) && t >= s.start && t < s.end;
+      })
+    : null;
+  if (!stickerSeg) return;
+  const sticker = state.stickers[stickerSeg.type];
+  if (!sticker) return;
+  const frames = sticker.frames.filter(Boolean);
+  if (!frames.length) return;
+  const fps = sticker.fps || 12;
+  // Which frame based on elapsed time and fps
+  const elapsed = t - stickerSeg.start;
+  const fi = Math.min(frames.length - 1, Math.floor(elapsed * fps));
+  const src = frames[fi];
+  const img = getImage(src);
+  if (!img || !img.complete) return;
+  // Draw sticker at char position
+  let cx = w / 2, cy = h / 2;
+  if (state.charMode === 'multi' && state.charLayout[ci]) {
+    cx = w * state.charLayout[ci].xPct / 100;
+    cy = h * state.charLayout[ci].yPct / 100;
+  }
+  const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  const iw = img.naturalWidth * scale;
+  const ih = img.naturalHeight * scale;
+  ctx.drawImage(img, cx - iw / 2, cy - ih / 2, iw, ih);
+}
+
+// ==================== PLAYBACK ====================
+function seekTo(t) {
+  state.currentTime = Math.max(0, Math.min(t, state.audioDuration));
+  updatePlayhead();
+  renderPreviewFrame(state.currentTime);
+  drawTimeline();
+  renderEmotionTrack();
+  updateTimeDisplay();
+}
+
+function updatePlayhead() {
+  const waveW = document.getElementById('waveformCanvas').width;
+  const pct = state.audioDuration > 0 ? state.currentTime / state.audioDuration : 0;
+  document.getElementById('playhead').style.left = (pct * waveW) + 'px';
+}
+
+function updateTimeDisplay() {
+  const cur = state.currentTime.toFixed(2);
+  const dur = (state.audioDuration || 0).toFixed(2);
+  document.getElementById('timeDisplay').textContent = cur + ' / ' + dur;
+  // Sync seekbar
+  const sb = document.getElementById('seekbar');
+  const st = document.getElementById('seekbarTime');
+  if (sb && state.audioDuration > 0) {
+    sb.value = Math.round((state.currentTime / state.audioDuration) * 1000);
+  }
+  if (st) st.textContent = cur + 's / ' + dur + 's';
+}
+
+let seekbarDragging = false;
+
+function onSeekbarInput(val) {
+  // While dragging: update preview frame but don't interrupt audio
+  seekbarDragging = true;
+  if (!state.audioDuration) return;
+  const t = (parseInt(val) / 1000) * state.audioDuration;
+  renderPreviewFrame(t);
+  const st = document.getElementById('seekbarTime');
+  if (st) st.textContent = t.toFixed(2) + 's / ' + state.audioDuration.toFixed(2) + 's';
+}
+
+function onSeekbarChange(val) {
+  // On release: seek audio to position
+  seekbarDragging = false;
+  if (!state.audioDuration) return;
+  const t = (parseInt(val) / 1000) * state.audioDuration;
+  seekTo(t);
+}
+
+function playPauseTimeline() {
+  if (state.playing) pausePlayback();
+  else startPlayback();
+}
+
+function startPlayback() {
+  if (!state.audioBuffer) return;
+  if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (state.audioCtx.state === 'suspended') state.audioCtx.resume();
+
+  if (state.sourceNode) { try { state.sourceNode.stop(); } catch(e){} }
+
+  state.sourceNode = state.audioCtx.createBufferSource();
+  state.sourceNode.buffer = state.audioBuffer;
+  state.sourceNode.loop = false;
+  state.sourceNode.connect(state.audioCtx.destination);
+  const offset = state.currentTime >= state.audioDuration ? 0 : state.currentTime;
+  state.sourceNode.start(0, offset);
+  // onended only fires on natural completion, not on .stop()
+  state.sourceNode.onended = () => { if (state.playing) stopTimeline(); };
+
+  state.playing = true;
+  state.playStartWall = performance.now();
+  state.playStartOffset = offset;
+  document.querySelector('.timeline-controls .btn-small').textContent = '⏸ 暂停';
+  document.getElementById('btnPlayPreview').textContent = '⏸ 暂停';
+  cancelAnimationFrame(state.animFrame);
+  state.animFrame = requestAnimationFrame(animatePlayback);
+}
+
+function pausePlayback() {
+  state.playing = false;
+  if (state.sourceNode) { try { state.sourceNode.stop(); } catch(e){} }
+  cancelAnimationFrame(state.animFrame);
+  state.animFrame = null;
+  document.querySelector('.timeline-controls .btn-small').textContent = '▶ 播放';
+  document.getElementById('btnPlayPreview').textContent = '▶ 播放预览';
+}
+
+function stopTimeline() {
+  pausePlayback();
+  state.currentTime = 0;
+  updatePlayhead();
+  renderPreviewFrame(0);
+  drawTimeline();
+  updateTimeDisplay();
+  const sb = document.getElementById('seekbar');
+  if (sb) sb.value = 0;
+}
+
+function animatePlayback() {
+  if (!state.playing) return;
+  const elapsed = (performance.now() - state.playStartWall) / 1000;
+  state.currentTime = state.playStartOffset + elapsed;
+  if (state.currentTime >= state.audioDuration) {
+    // Clamp and show last frame properly before stopping
+    state.currentTime = state.audioDuration;
+    updatePlayhead();
+    renderPreviewFrame(state.currentTime);
+    drawTimeline();
+    updateTimeDisplay();
+    stopTimeline();
+    return;
+  }
+  updatePlayhead();
+  renderPreviewFrame(state.currentTime);
+  drawTimeline();
+  renderEmotionTrack();
+  updateTimeDisplay();
+  state.animFrame = requestAnimationFrame(animatePlayback);
+}
+
+// ==================== EXPORT ====================
+async function startExport() {
+  if (!state.audioBuffer) { showToast('需要音频才能导出', 'error'); return; }
+
+  const fps = parseInt(document.getElementById('exportFps').value);
+  const sizeOpt = document.getElementById('exportSize').value;
+  const bgColor = document.getElementById('bgColor').value;
+  const bgMode = document.getElementById('bgMode').value;
+  const TAIL_PAD = 3.0; // seconds of silent padding appended to audio
+
+  // Determine canvas size
+  let exportW = 640, exportH = 480;
+  if (sizeOpt === 'original' && state.images.idle) {
+    const img = getImage(state.images.idle);
+    exportW = img ? img.naturalWidth : 640;
+    exportH = img ? img.naturalHeight : 480;
+  } else if (sizeOpt !== 'original') {
+    [exportW, exportH] = sizeOpt.split('x').map(Number);
+  }
+
+  // Use a SEPARATE AudioContext for export so it never pollutes preview playback
+  const exportCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Build padded audio buffer (original + TAIL_PAD seconds of silence)
+  const origDur = state.audioBuffer.duration;
+  const sr = state.audioBuffer.sampleRate;
+  const nChannels = state.audioBuffer.numberOfChannels;
+  const paddedDuration = origDur + TAIL_PAD;
+  const paddedBuffer = exportCtx.createBuffer(nChannels, Math.ceil(paddedDuration * sr), sr);
+  for (let c = 0; c < nChannels; c++) {
+    const origData = state.audioBuffer.getChannelData(c);
+    paddedBuffer.getChannelData(c).set(origData);
+  }
+
+  const totalFrames = Math.ceil(paddedDuration * fps);
+  const offscreenCanvas = document.createElement('canvas');
+  offscreenCanvas.width = exportW;
+  offscreenCanvas.height = exportH;
+  const offCtx = offscreenCanvas.getContext('2d');
+  const stream = offscreenCanvas.captureStream(fps);
+  const audioDestination = exportCtx.createMediaStreamDestination();
+  const src = exportCtx.createBufferSource();
+  src.buffer = paddedBuffer;
+  src.loop = false;
+  src.connect(audioDestination);
+
+  const combinedStream = new MediaStream([
+    ...stream.getVideoTracks(),
+    ...audioDestination.stream.getAudioTracks()
+  ]);
+
+  // Transparent mode needs VP9 with alpha channel
+  const isTransparent = bgMode === 'transparent';
+  const mimeType = (isTransparent || MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))
+    ? 'video/webm;codecs=vp9,opus'
+    : 'video/webm';
+
+  const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  document.getElementById('exportProgress').style.display = 'block';
+  document.getElementById('btnExport').disabled = true;
+
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lipsync_output.webm';
+    a.click();
+    document.getElementById('exportProgress').style.display = 'none';
+    document.getElementById('btnExport').disabled = false;
+    showToast('导出完成！', 'success');
+  };
+
+  // Preload all images before starting recorder
+  const allSrcs = [...Object.values(state.images), ...state.blinkFrames,
+    state.bgImageUrl].filter(Boolean);
+  await Promise.all(allSrcs.map(s => loadImage(s).catch(() => {})));
+
+  recorder.start();
+  const exportWallStart = performance.now();
+  src.start(0);
+
+  // Frame rendering: use wall-clock time to decide which frame to draw.
+  // setTimeout is more reliable than rAF for offscreen canvas recording
+  // because rAF can be throttled when tab is not focused.
+  const msPerFrame = 1000 / fps;
+  let exportFrameIdx = 0;
+  let exportStopped = false;
+
+  function scheduleNextExportFrame() {
+    if (exportStopped) return;
+    const elapsed = (performance.now() - exportWallStart) / 1000;
+    if (elapsed >= paddedDuration) {
+      exportStopped = true;
+      // Draw final idle frame
+      drawExportFrame(offCtx, origDur - 0.001, origDur, exportW, exportH, bgMode, bgColor);
+      document.getElementById('progressFill').style.width = '100%';
+      document.getElementById('progressText').textContent = '收尾中...';
+      // Give MediaRecorder 500ms to flush remaining audio data before stopping
+      setTimeout(() => {
+        exportCtx.close();
+        recorder.stop();
+      }, 500);
+      return;
+    }
+
+    drawExportFrame(offCtx, elapsed, origDur, exportW, exportH, bgMode, bgColor);
+    exportFrameIdx++;
+
+    const pct = Math.min(99, (elapsed / paddedDuration * 100)).toFixed(0);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent =
+      elapsed <= origDur
+        ? `导出中 ${elapsed.toFixed(1)}s / ${origDur.toFixed(1)}s (${pct}%)`
+        : `收尾静音中... (${pct}%)`;
+
+    // Schedule next frame aligned to wall-clock (compensates for drift)
+    const nextFrameWall = exportWallStart + exportFrameIdx * msPerFrame;
+    const delay = Math.max(0, nextFrameWall - performance.now());
+    setTimeout(scheduleNextExportFrame, delay);
+  }
+
+  function drawExportFrame(ctx, t, origDur, w, h, bgMode, bgColor) {
+    ctx.clearRect(0, 0, w, h);
+    if (bgMode === 'image' && state.bgImage) {
+      const bw = state.bgImage.naturalWidth, bh = state.bgImage.naturalHeight;
+      const scale = Math.max(w / bw, h / bh);
+      const dw = bw * scale, dh = bh * scale;
+      ctx.drawImage(state.bgImage, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    } else if (bgMode !== 'transparent') {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, w, h);
+    }
+    // transparent: clearRect already done, nothing to draw
+    const tC = Math.min(t, origDur - 0.001);
+    if (state.charMode === 'multi') {
+      const frames = getAllFramesAt(tC);
+      for (const f of frames) {
+        if (!f.src) continue;
+        const img = getImage(f.src);
+        if (!img) continue;
+        const layout = state.charLayout[f.ci] || { xPct:50, yPct:50, scale:100 };
+        const anim = getAnimOffset(f.ci, tC);
+        const sf = (layout.scale / 100) * Math.min(w / img.naturalWidth, h / img.naturalHeight);
+        const iw = img.naturalWidth * sf;
+        const ih = img.naturalHeight * sf;
+        const ix = (w * (layout.xPct + anim.dx) / 100) - iw / 2;
+        const iy = (h * (layout.yPct + anim.dy) / 100) - ih / 2;
+        ctx.drawImage(img, ix, iy, iw, ih);
+      }
+    } else {
+      const f = getFrameAt(tC);
+      if (f.src) {
+        const img = getImage(f.src);
+        if (img) {
+          const scale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+          const iw = img.naturalWidth * scale;
+          const ih = img.naturalHeight * scale;
+          ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
+        }
+      }
+    }
+    // Subtitle overlay
+    const tSub = Math.min(t, origDur - 0.001);
+    const sub = getSubtitleAt(tSub);
+    if (sub) {
+      const speakingCi = state.charMode === 'multi' ? getSpeakingCharAt(tSub) : null;
+      drawSubtitle(ctx, sub, w, h, speakingCi);
+    }
+    // Sticker overlay
+    drawStickerFrame(ctx, tSub, w, h);
+  }
+
+  scheduleNextExportFrame();
+}
+
+// ==================== TOAST ====================
+let toastTimer;
+function showToast(msg, type = '', duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', duration);
+}
+
+function checkAlignment(romajiText, syllables) {
+  // Only check multi-char format issues; subtitle is fully optional
+  if (state.charMode === 'multi') {
+    const charLineCounts = {};
+    romajiText.split('\n').forEach(function(line) {
+      const m = line.match(/^\[(\d+)(?::[a-z]+)?\]/);
+      if (m) charLineCounts[m[1]] = (charLineCounts[m[1]] || 0) + 1;
+    });
+    const missingChars = ['1','2'].filter(function(i){ return !charLineCounts[i]; });
+    if (missingChars.length) {
+      setTimeout(function(){
+        showToast('⚠️ 角色 ' + missingChars.join('、') + ' 没有找到台词行，请检查 [1] / [2] 标注格式。', 'warning', 7000);
+      }, 600);
+    }
+  }
+}
+
+// ==================== PREVIEW ASPECT SYNC ====================
+function syncPreviewAspect() {
+  const sel = document.getElementById('exportSize').value;
+  const canvas = document.getElementById('previewCanvas');
+  if (sel === 'original') {
+    // Use idle image natural size if available, else 640x480
+    const idleSrc = state.images.idle;
+    if (idleSrc && imageCache[idleSrc]) {
+      const img = imageCache[idleSrc];
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+    } else {
+      canvas.width = 640; canvas.height = 480;
+    }
+  } else {
+    const parts = sel.split('x').map(Number);
+    canvas.width = parts[0]; canvas.height = parts[1];
+  }
+  if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
+}
+
+// ==================== PROJECT SAVE / LOAD ====================
+async function saveProject() {
+  // Ask user for filename first
+  const defaultName = 'lipsync_project';
+  const name = window.prompt('请输入项目名称：', defaultName);
+  if (name === null) return; // cancelled
+  const filename = (name.trim() || defaultName).replace(/[\\/:*?"<>|]/g, '_') + '.lipsync';
+
+  showToast('正在打包项目...', '', 60000);
+  try {
+    // Deep-copy all state data to avoid reference issues
+    const project = {
+      version: 2,
+      lang: state.lang,
+      charMode: state.charMode,
+      images: JSON.parse(JSON.stringify(state.images)),
+      blinkFrames: JSON.parse(JSON.stringify(state.blinkFrames)),
+      charImages: JSON.parse(JSON.stringify(state.charImages)),
+      charLayout: JSON.parse(JSON.stringify(state.charLayout)),
+      bgImageUrl: state.bgImageUrl,
+      audioDuration: state.audioDuration,
+      segments: JSON.parse(JSON.stringify(state.segments)),
+      subtitles: JSON.parse(JSON.stringify(state.subtitles)),
+      subtitleAlign: state.subtitleAlign,
+      emotionSegments: JSON.parse(JSON.stringify(state.emotionSegments)),
+      emotionImages: JSON.parse(JSON.stringify(state.emotionImages)),
+      emotionAnim: JSON.parse(JSON.stringify(state.emotionAnim)),
+      stickers: JSON.parse(JSON.stringify(state.stickers)),
+      stickerSegments: JSON.parse(JSON.stringify(state.stickerSegments)),
+      charSubStyle: JSON.parse(JSON.stringify(state.charSubStyle)),
+      customEmotionName: state.customEmotionName,
+      audioData: null,
+      audioName: document.getElementById('audioName').textContent,
+      romajiText: document.getElementById('romajiInput').value,
+      subtitleOriginal: document.getElementById('subtitleOriginal').value,
+      subtitleTranslation: document.getElementById('subtitleTranslation').value,
+      settings: {
+        exportSize: document.getElementById('exportSize').value,
+        exportFps: document.getElementById('exportFps').value,
+        bgMode: document.getElementById('bgMode').value,
+        bgColor: document.getElementById('bgColor').value,
+        blinkThreshold: document.getElementById('blinkThreshold').value,
+        voiceThreshold: document.getElementById('voiceThreshold').value,
+        subtitleFont: document.getElementById('subtitleFont').value,
+        subtitleSize: document.getElementById('subtitleSize').value,
+        subtitleSizeSub: document.getElementById('subtitleSizeSub').value,
+        subtitleColor: document.getElementById('subtitleColor').value,
+        subtitleColorSub: document.getElementById('subtitleColorSub').value,
+        subtitleStroke: document.getElementById('subtitleStroke').value,
+        subtitleX: document.getElementById('subtitleX').value,
+        subtitleY: document.getElementById('subtitleY').value,
+        subtitleLineGap: document.getElementById('subtitleLineGap').value,
+        subtitleStrokeWidth: document.getElementById('subtitleStrokeWidth').value,
+      }
+    };
+
+    // Encode audio buffer to base64 WAV
+    if (state.audioBuffer) {
+      const wavBlob = audioBufferToWav(state.audioBuffer);
+      project.audioData = await blobToBase64(wavBlob);
+    }
+
+    const json = JSON.stringify(project);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    showToast('项目已保存：' + filename, 'success');
+  } catch(e) {
+    showToast('保存失败：' + e.message, 'error');
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise(function(resolve) {
+    const reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.readAsDataURL(blob);
+  });
+}
+
+function audioBufferToWav(buffer) {
+  const nCh = buffer.numberOfChannels;
+  const sr = buffer.sampleRate;
+  const len = buffer.length;
+  const bytesPerSample = 2;
+  const blockAlign = nCh * bytesPerSample;
+  const byteRate = sr * blockAlign;
+  const dataSize = len * blockAlign;
+  const ab = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(ab);
+  function writeStr(off, s) { for (let i=0;i<s.length;i++) view.setUint8(off+i, s.charCodeAt(i)); }
+  writeStr(0,'RIFF'); view.setUint32(4,36+dataSize,true);
+  writeStr(8,'WAVE'); writeStr(12,'fmt ');
+  view.setUint32(16,16,true); view.setUint16(20,1,true);
+  view.setUint16(22,nCh,true); view.setUint32(24,sr,true);
+  view.setUint32(28,byteRate,true); view.setUint16(32,blockAlign,true);
+  view.setUint16(34,16,true); writeStr(36,'data');
+  view.setUint32(40,dataSize,true);
+  let offset = 44;
+  for (let i=0;i<len;i++) {
+    for (let c=0;c<nCh;c++) {
+      const s = Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));
+      view.setInt16(offset, s<0?s*0x8000:s*0x7FFF, true);
+      offset += 2;
+    }
+  }
+  return new Blob([ab], { type:'audio/wav' });
+}
+
+async function loadProject(input) {
+  if (!input.files[0]) return;
+  showToast('正在读取项目...', '', 60000);
+  try {
+    const text = await input.files[0].text();
+    const p = JSON.parse(text);
+
+    // ── Full state reset before loading — prevents bleed from previous project ──
+    resetStateForLoad();
+
+    // ── Normalise old project files: fill in missing fields with defaults ──
+    p.images = p.images || {};
+    p.blinkFrames = p.blinkFrames || [null, null, null];
+    p.charImages = p.charImages || { 1:{}, 2:{} };
+    p.segments = p.segments || [];
+    p.subtitles = p.subtitles || [];
+    p.emotionSegments = p.emotionSegments || [];
+    if (p.emotionImages && !p.emotionImages[1] && !p.emotionImages[2]) {
+      const old = p.emotionImages;
+      p.emotionImages = { 1: old, 2: {} };
+    }
+    p.emotionImages = p.emotionImages || { 1:{}, 2:{} };
+    p.customEmotionName = p.customEmotionName || '自定义';
+    p.lang = p.lang || 'jp';
+    p.charMode = p.charMode || 'single';
+    p.settings = p.settings || {};
+    // ────────────────────────────────────────────────────────────────────
+
+    // Restore images
+    const imgKeys = ['idle','a','i','u','e','o','open'];
+    for (const k of imgKeys) {
+      if (p.images[k]) {
+        await loadImage(p.images[k]);
+        state.images[k] = p.images[k];
+        const zone = document.getElementById('zone-' + k);
+        if (zone) markZoneFilled(zone, p.images[k]);
+      }
+    }
+    for (let bi = 0; bi < 3; bi++) {
+      if (p.blinkFrames[bi]) {
+        await loadImage(p.blinkFrames[bi]);
+        state.blinkFrames[bi] = p.blinkFrames[bi];
+        const zone = document.getElementById('zone-blink-' + bi);
+        if (zone) markZoneFilled(zone, p.blinkFrames[bi]);
+      }
+    }
+    if (p.charImages) {
+      for (const ci of [1,2]) {
+        for (const k of [...imgKeys,'blink']) {
+          const src = p.charImages[ci]?.[k];
+          if (src) {
+            await loadImage(src);
+            state.charImages[ci][k] = src;
+            const zone = document.getElementById('zone-c'+ci+'-'+k);
+            if (zone) markZoneFilled(zone, src);
+          }
+        }
+      }
+    }
+    if (p.bgImageUrl) {
+      const img = await loadImage(p.bgImageUrl);
+      if (img) { state.bgImage = img; state.bgImageUrl = p.bgImageUrl; }
+    }
+
+    // Restore audio
+    if (p.audioData) {
+      const res = await fetch(p.audioData);
+      const arrayBuffer = await res.arrayBuffer();
+      if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      state.audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+      state.audioDuration = state.audioBuffer.duration;
+      document.getElementById('audioName').textContent = p.audioName || '已恢复音频';
+      document.getElementById('audioUpload').classList.add('filled');
+    }
+
+    // Restore state
+    state.lang = p.lang || 'jp';
+    state.charMode = p.charMode || 'single';
+    state.segments = p.segments || [];
+    if (p.subtitleAlign) { state.subtitleAlign = p.subtitleAlign; setSubtitleAlign(p.subtitleAlign); }
+    if (p.charLayout) {
+      state.charLayout = p.charLayout;
+      // Restore sliders
+      [[1,'c1x','xPct'],[1,'c1y','yPct'],[1,'c1s','scale'],[1,'c1l','layer'],
+       [2,'c2x','xPct'],[2,'c2y','yPct'],[2,'c2s','scale'],[2,'c2l','layer']].forEach(function(r) {
+        const el = document.getElementById(r[1]);
+        const vEl = document.getElementById(r[1]+'v');
+        if (el && state.charLayout[r[0]]) {
+          el.value = state.charLayout[r[0]][r[2]];
+          if (vEl) vEl.textContent = state.charLayout[r[0]][r[2]] + (r[2]==='layer' ? '' : '%');
+        }
+      });
+    }
+    state.subtitles = p.subtitles || [];
+    state.emotionSegments = p.emotionSegments || [];
+    if (p.emotionImages) {
+      for (const ci of [1, 2]) {
+        const ciData = p.emotionImages[ci] || {};
+        for (const emo of Object.keys(ciData)) {
+          if (!state.emotionImages[ci]) state.emotionImages[ci] = {};
+          if (!state.emotionImages[ci][emo]) state.emotionImages[ci][emo] = {};
+          for (const key of Object.keys(ciData[emo] || {})) {
+            const src = ciData[emo][key];
+            if (src) { await loadImage(src); state.emotionImages[ci][emo][key] = src; }
+          }
+        }
+      }
+    }
+    if (p.customEmotionName) {
+      state.customEmotionName = p.customEmotionName;
+      const nameInput = document.getElementById('customEmotionName');
+      if (nameInput) nameInput.value = p.customEmotionName;
+    }
+    if (p.emotionAnim) {
+      for (const emo of Object.keys(p.emotionAnim)) {
+        if (state.emotionAnim[emo]) Object.assign(state.emotionAnim[emo], p.emotionAnim[emo]);
+      }
+    }
+    if (p.stickerSegments) state.stickerSegments = p.stickerSegments;
+    if (p.charSubStyle) {
+      for (const ci of [1,2]) {
+        if (p.charSubStyle[ci]) Object.assign(state.charSubStyle[ci], p.charSubStyle[ci]);
+      }
+    }
+    if (p.stickers) {
+      for (const type of Object.keys(p.stickers)) {
+        if (!state.stickers[type]) continue;
+        const pSticker = p.stickers[type];
+        // Restore fps
+        if (pSticker.fps) state.stickers[type].fps = pSticker.fps;
+        const frames = pSticker.frames || [];
+        // Expand frames array if needed (old saves had 4, new has 8)
+        while (state.stickers[type].frames.length < 8) state.stickers[type].frames.push(null);
+        for (let fi = 0; fi < frames.length; fi++) {
+          const src = frames[fi];
+          if (src) {
+            await loadImage(src);
+            state.stickers[type].frames[fi] = src;
+          }
+        }
+      }
+    }
+
+    // Restore UI text
+    document.getElementById('romajiInput').value = p.romajiText || '';
+    document.getElementById('subtitleOriginal').value = p.subtitleOriginal || '';
+    document.getElementById('subtitleTranslation').value = p.subtitleTranslation || '';
+
+    // Restore settings
+    const s = p.settings || {};
+    const setVal = function(id, v) { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+    setVal('exportSize', s.exportSize); setVal('exportFps', s.exportFps);
+    setVal('bgMode', s.bgMode); setVal('bgColor', s.bgColor);
+    setVal('blinkThreshold', s.blinkThreshold); setVal('voiceThreshold', s.voiceThreshold);
+    setVal('subtitleFont', s.subtitleFont); setVal('subtitleSize', s.subtitleSize);
+    setVal('subtitleSizeSub', s.subtitleSizeSub); setVal('subtitleColor', s.subtitleColor);
+    setVal('subtitleColorSub', s.subtitleColorSub); setVal('subtitleStroke', s.subtitleStroke);
+    setVal('subtitleX', s.subtitleX); setVal('subtitleY', s.subtitleY);
+    setVal('subtitleLineGap', s.subtitleLineGap);
+    setVal('subtitleStrokeWidth', s.subtitleStrokeWidth);
+    if (s.subtitleStrokeWidth) document.getElementById('subtitleStrokeWidthVal').textContent = parseFloat(s.subtitleStrokeWidth).toFixed(2) + '×';
+
+    // Update label displays
+    if (s.blinkThreshold) document.getElementById('blinkThresholdLabel').textContent = parseFloat(s.blinkThreshold).toFixed(1) + ' 秒';
+    if (s.voiceThreshold) updateVoiceThresholdLabel(s.voiceThreshold);
+    if (s.subtitleY) document.getElementById('subtitleYVal').textContent = s.subtitleY + '%';
+    if (s.subtitleX) document.getElementById('subtitleXVal').textContent = s.subtitleX + '%';
+    if (s.subtitleLineGap) document.getElementById('subtitleLineGapVal').textContent = parseFloat(s.subtitleLineGap).toFixed(1) + '×';
+    if (s.bgMode) onBgModeChange();
+    setLang(state.lang);
+    setCharMode(state.charMode);
+
+    // Show timeline & preview
+    if (state.segments.length) {
+      document.getElementById('timelineSection').classList.add('visible');
+      document.getElementById('stepPreview').style.display = 'block';
+      syncPreviewAspect();
+      drawWaveform();
+      drawTimeline();
+      renderSubtitleTrack();
+      renderEmotionTrack();
+      renderPreviewFrame(0);
+    }
+
+    showToast('项目已读取！', 'success');
+  } catch(e) {
+    showToast('读取失败：' + e.message, 'error');
+    console.error(e);
+  }
+  input.value = '';
+}
+
+// ==================== INIT ====================
+function resetStateForLoad() {
+  // Reset all images
+  state.images = { idle:null, a:null, i:null, u:null, e:null, o:null, open:null };
+  state.blinkFrames = [null, null, null];
+  state.charImages = {
+    1: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
+    2: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
+  };
+  state.bgImage = null;
+  state.bgImageUrl = null;
+  state.segments = [];
+  state.subtitles = [];
+  state.emotionSegments = [];
+  state.stickerSegments = [];
+  state.emotionImages = {
+    1: { happy:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         sad:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         bored:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         nervous:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         custom:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null} },
+    2: { happy:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         sad:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         bored:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         nervous:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null},
+         custom:{idle:null,a:null,i:null,u:null,e:null,o:null,blink0:null,blink1:null,blink2:null} },
+  };
+  state.stickers = {
+    wink:   { frames:[null,null,null,null,null,null,null,null], fps:12, label:'😉 Wink' },
+    shifty: { frames:[null,null,null,null,null,null,null,null], fps:12, label:'👀 目移' },
+    smile:  { frames:[null,null,null,null,null,null,null,null], fps:10, label:'😊 闭眼笑' },
+    custom: { frames:[null,null,null,null,null,null,null,null], fps:12, label:'✨ 自定义' },
+  };
+  // Clear all upload zone UI
+  document.querySelectorAll('.upload-zone.filled').forEach(function(zone) {
+    clearZone(zone);
+  });
+  // Hide timeline section
+  const tl = document.getElementById('timelineSection');
+  if (tl) tl.classList.remove('visible');
+  const sp = document.getElementById('stepPreview');
+  if (sp) sp.style.display = 'none';
+  // Rebuild sticker panel if open
+  const sb = document.getElementById('stickerPanelBody');
+  if (sb && sb.style.display !== 'none') {
+    const sc = document.getElementById('stickerUploadContainer');
+    if (sc) sc.innerHTML = '';
+    buildStickerPanel();
+  }
+  // Rebuild emotion grid if open
+  const eb = document.getElementById('emotionPanelBody');
+  if (eb && eb.style.display !== 'none') {
+    buildEmotionGrids();
+  }
+}
+
+function closeWelcomeModal() {
+  const modal = document.getElementById('welcomeModal');
+  if (modal) {
+    modal.style.opacity = '0';
+    modal.style.transition = 'opacity 0.3s';
+    setTimeout(function() { modal.style.display = 'none'; }, 300);
+  }
+  // Remember dismissal for this session
+  try { sessionStorage.setItem('lipsync_welcomed', '1'); } catch(e) {}
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  // Show modal unless already dismissed this session
+  try {
+    if (sessionStorage.getItem('lipsync_welcomed')) {
+      const modal = document.getElementById('welcomeModal');
+      if (modal) modal.style.display = 'none';
+    }
+  } catch(e) {}
+});
+
+window.addEventListener('resize', () => {
+  if (state.audioBuffer) drawWaveform();
+  drawTimeline();
+});
+
+</script>
+</body>
+</html>
