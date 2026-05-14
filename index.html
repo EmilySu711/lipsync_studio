@@ -1515,7 +1515,7 @@
           <span style="color:var(--text3);font-size:10px;margin-left:6px;">用空格分隔每个音节</span>
         </p>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:11px;color:var(--text3);">🎋 诗词模式</span>
+          <span style="font-size:11px;color:var(--text3);" title="词内连读，无间歇——词组内相邻音节自动首尾相连，不插入闭嘴帧">🎋 诗词模式</span>
           <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
             <input type="checkbox" id="poetryModeToggle" style="opacity:0;width:0;height:0;"
               onchange="state.poetryMode=this.checked;document.getElementById('poetryControls').style.display=this.checked?'':'none';document.getElementById('poetryToggleBg').style.background=this.checked?'var(--accent)':'var(--surface3)';document.getElementById('poetryToggleKnob').style.left=this.checked?'18px':'2px';">
@@ -1529,6 +1529,9 @@
         <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">
           诗词模式：用 <strong style="color:var(--text2);">｜</strong> 分隔词组（词内相邻音节自动首尾相连）<br>
           例：<em>ya ma mi chi o | no bo ri na ga ra</em>
+        </div>
+        <div style="font-size:10px;color:var(--warning);margin-bottom:6px;">
+          ⚠️ 诗词模式下音节之间无停顿，建议使用干净的纯人声音频，背景音乐可能导致角色持续张嘴。
         </div>
         <div class="subtitle-pos-row">
           <label>最短音节时长</label>
@@ -1545,8 +1548,7 @@
         n / nn → 闭嘴 &nbsp;|&nbsp; 其他辅音结尾 → 对应元音口型
       </div>
       <div id="langHintEN" style="display:none;margin-top:10px;padding:10px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.8;">
-        <span style="color:#fbbf24;">⚠️ 英语模式建议使用纯人声，背景音乐会导致角色持续张嘴。</span><br>
-        <strong style="color:var(--text2);">英语输入说明</strong><br>
+<strong style="color:var(--text2);">英语输入说明</strong><br>
         <strong style="color:var(--text2);">方式一：普通英文</strong> 直接输入单词，工具识别末尾元音。例：<em>hello how are you today</em><br>
         <strong style="color:var(--text2);">方式二：Arpabet 音标</strong> 每个音素用空格分隔，工具自动识别。例：<em>HH AH0 L OW1 HH AW1 AA1 R Y UW0 T AH0 D EY1</em><br>
         可将文本发给 AI 转换：<span style="color:var(--text2);">"请将以下英文转为 CMU Arpabet 格式，每个音素空格分隔，单词间加 | ，只输出结果"</span>
@@ -1606,7 +1608,7 @@
         <div style="margin-bottom:10px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
             <div style="font-size:11px;color:var(--text3);">原文 <span style="color:var(--text3);font-size:10px;">（可选，每行一句）</span></div>
-            <div style="display:flex;gap:4px;">
+            <div style="display:flex;gap:4px;" id="subtitleAlignBtns">
               <div class="toggle-btn active" id="btnAlignEven" onclick="setSubtitleAlign('even')" style="padding:2px 8px;font-size:10px;">等分</div>
               <div class="toggle-btn" id="btnAlignRomaji" onclick="setSubtitleAlign('romaji')" style="padding:2px 8px;font-size:10px;">罗马音行</div>
             </div>
@@ -2104,6 +2106,14 @@ function setLang(lang) {
     : '方式一：hello how are you today（普通单词）\n方式二：HH AH0 L OW1 HH AW1（Arpabet音标，音素空格分隔）';
   const warn = document.getElementById('enSubtitleWarn');
   if (warn) warn.style.display = lang === 'en' ? '' : 'none';
+  // 字幕对齐：英语和通用只用等分，日语才能用罗马音行
+  const romajiAlignBtn = document.getElementById('btnAlignRomaji');
+  if (romajiAlignBtn) {
+    romajiAlignBtn.style.display = lang === 'jp' ? '' : 'none';
+  }
+  if (lang !== 'jp' && state.subtitleAlign === 'romaji') {
+    setSubtitleAlign('even');
+  }
   // Rebuild emotion grids if panel is open (key count changes with lang)
   const emotionBody = document.getElementById('emotionPanelBody');
   if (emotionBody && emotionBody.style.display !== 'none') {
@@ -2316,6 +2326,25 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function wrapSubtitleText(ctx, text, maxWidth) {
+  // Split text into lines if it exceeds maxWidth
+  if (ctx.measureText(text).width <= maxWidth) return [text];
+  const chars = text.split('');
+  const lines = [];
+  let cur = '';
+  for (const ch of chars) {
+    const test = cur + ch;
+    if (ctx.measureText(test).width > maxWidth && cur.length > 0) {
+      lines.push(cur);
+      cur = ch;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
 function drawSubtitle(ctx, sub, canvasW, canvasH, speakingCi) {
   if (!sub || !sub.original) return;
   const font = document.getElementById('subtitleFont').value;
@@ -2329,7 +2358,6 @@ function drawSubtitle(ctx, sub, canvasW, canvasH, speakingCi) {
   const size = Math.round(sizeBase * scale);
   const sizeSub = Math.round(sizeSubBase * scale);
 
-  // In multi-char mode, use per-char style if a speaking char is identified
   let color, colorSub, xPct, yPct;
   if (state.charMode === 'multi' && speakingCi && state.charSubStyle[speakingCi]) {
     const cs = state.charSubStyle[speakingCi];
@@ -2344,25 +2372,36 @@ function drawSubtitle(ctx, sub, canvasW, canvasH, speakingCi) {
 
   const cx = canvasW * xPct;
   const baseY = canvasH * yPct;
+  const maxW = canvasW * 0.85; // 85% of canvas width before wrapping
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
   ctx.font = 'bold ' + size + 'px ' + font;
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = Math.max(0, size * strokeMult);
   ctx.lineJoin = 'round';
-  ctx.strokeText(sub.original, cx, baseY);
-  ctx.fillStyle = color;
-  ctx.fillText(sub.original, cx, baseY);
+
+  // Auto-wrap original text
+  const origLines = wrapSubtitleText(ctx, sub.original, maxW);
+  const totalOrigH = origLines.length * size * lineGap;
+  origLines.forEach(function(line, li) {
+    const y = baseY + li * size * lineGap - (totalOrigH - size * lineGap) / 2;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = Math.max(0, size * strokeMult);
+    ctx.strokeText(line, cx, y);
+    ctx.fillStyle = color;
+    ctx.fillText(line, cx, y);
+  });
 
   if (sub.translation) {
-    const ty = baseY + size * lineGap;
+    const transY = baseY + totalOrigH / 2 + sizeSub * 0.3;
     ctx.font = sizeSub + 'px ' + font;
-    ctx.lineWidth = Math.max(0, sizeSub * strokeMult * 0.875);
-    ctx.strokeStyle = stroke;
-    ctx.strokeText(sub.translation, cx, ty);
-    ctx.fillStyle = colorSub;
-    ctx.fillText(sub.translation, cx, ty);
+    const transLines = wrapSubtitleText(ctx, sub.translation, maxW);
+    transLines.forEach(function(line, li) {
+      const y = transY + li * sizeSub * lineGap;
+      ctx.lineWidth = Math.max(0, sizeSub * strokeMult * 0.875);
+      ctx.strokeStyle = stroke;
+      ctx.strokeText(line, cx, y);
+      ctx.fillStyle = colorSub;
+      ctx.fillText(line, cx, y);
+    });
   }
 }
 
@@ -5476,5 +5515,191 @@ window.addEventListener('resize', () => {
 });
 
 </script>
+
+<!-- ==================== 猫咪桌宠 ==================== -->
+<div id="catPet" style="position:fixed;right:24px;bottom:24px;z-index:8000;cursor:pointer;user-select:none;touch-action:none;">
+  <div id="catBubble" style="display:none;"></div>
+  <div id="catEmoji" style="font-size:32px;text-align:center;line-height:1;">🐈</div>
+</div>
+
+<style>
+#catPet {
+  transition: bottom 0.1s;
+}
+#catBubble {
+  position:fixed;
+  background:var(--surface2,#1e1e2a);
+  border:1px solid var(--border,#2a2a3e);
+  border-radius:12px;
+  padding:8px 14px;
+  font-size:12px;
+  color:var(--text,#e2e8f0);
+  width:160px;
+  white-space:normal;
+  text-align:center;
+  line-height:1.6;
+  pointer-events:none;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  z-index:8001;
+}
+#catBubble::after {
+  display:none;
+}
+</style>
+
+<script>
+(function() {
+  const CAT_LINES = [
+    '如果你觉得我碍着事儿了，就多点我几下赶我走',
+    '干净的音频会更方便识别哦',
+    '我什么也不知道呀，因为我只是一只猫',
+    '英语模式的口型真的好多呀',
+    '如果你对口型的要求不高，可以使用通用模式哦',
+    '通用模式其实也很好用的！',
+    '谢谢你喜欢我的作品！',
+    '诗词模式下记得用｜来分隔词组哦',
+    '保存一下工程文件，下次可以继续编辑',
+  ];
+  const DISMISS_LINE = '我明白了，那祝你创作愉快';
+  const RAPID_WINDOW = 600;  // 连续点击的时间窗口(ms)
+  const DISMISS_CLICKS = 3;  // 在时间窗口内点几下才赶走
+
+  let clickCount = 0;
+  let isFirst = true;
+  let lineIdx = 0;
+  let bubbleTimer = null;
+  let jumpAnim = null;
+  let isDragging = false;
+  let rapidTimer = null;  // 快速点击计时器
+
+  const cat = document.getElementById('catPet');
+  const emoji = document.getElementById('catEmoji');
+
+  // ── 跳动动画：慢速，每隔一段时间才跳一下 ──
+  function startJump() {
+    if (jumpAnim) return;
+    function doJump() {
+      let pos = 0;
+      let going = true;
+      const anim = setInterval(function() {
+        pos += going ? -2 : 2;
+        if (pos <= -7) going = false;
+        if (pos >= 0) {
+          pos = 0;
+          clearInterval(anim);
+          emoji.style.transform = 'translateY(0)';
+          // 随机 2~5 秒后再跳一次
+          jumpAnim = setTimeout(doJump, 2000 + Math.random() * 3000);
+        }
+        emoji.style.transform = 'translateY(' + pos + 'px)';
+      }, 35);
+    }
+    jumpAnim = setTimeout(doJump, 1500);
+  }
+  startJump();
+
+  // ── 显示气泡 ──
+  function showBubble(text, duration) {
+    if (bubbleTimer) clearTimeout(bubbleTimer);
+    const bubble = document.getElementById('catBubble');
+    bubble.textContent = text;
+    // 定位到猫的上方
+    const rect = cat.getBoundingClientRect();
+    bubble.style.left = (rect.left + rect.width / 2 - 80) + 'px';
+    bubble.style.top = (rect.top - 10) + 'px';
+    bubble.style.transform = 'translateY(-100%)';
+    bubble.style.display = 'block';
+    bubble.style.opacity = '1';
+    bubble.style.transition = 'none';
+
+    bubbleTimer = setTimeout(function() {
+      const dx = (Math.random() - 0.5) * 40;
+      bubble.style.transition = 'opacity 0.8s, transform 0.8s';
+      bubble.style.opacity = '0';
+      bubble.style.transform = 'translateY(calc(-100% - 30px)) translateX(' + dx + 'px)';
+      setTimeout(function() {
+        bubble.style.display = 'none';
+        bubble.style.transition = 'none';
+        bubble.textContent = '';
+      }, 820);
+    }, duration || 3500);
+  }
+
+  // ── 点击 ──
+  cat.addEventListener('click', function(e) {
+    if (isDragging) return;
+
+    // 快速连击检测：在 RAPID_WINDOW ms 内点 DISMISS_CLICKS 下才赶走
+    clickCount++;
+    if (rapidTimer) clearTimeout(rapidTimer);
+    rapidTimer = setTimeout(function() {
+      clickCount = 0; // 超时重置，说明是普通点击
+    }, RAPID_WINDOW);
+
+    if (clickCount >= DISMISS_CLICKS) {
+      // 赶走猫
+      clickCount = 0;
+      clearTimeout(rapidTimer);
+      if (jumpAnim) { clearTimeout(jumpAnim); clearInterval(jumpAnim); }
+      if (bubbleTimer) clearTimeout(bubbleTimer);
+      const bubble = document.getElementById('catBubble');
+      bubble.style.display = 'block';
+      bubble.style.opacity = '1';
+      bubble.style.transition = 'none';
+      bubble.textContent = DISMISS_LINE;
+      setTimeout(function() {
+        bubble.style.transition = 'opacity 0.8s';
+        bubble.style.opacity = '0';
+        setTimeout(function() {
+          cat.parentNode && cat.parentNode.removeChild(cat);
+        }, 900);
+      }, 2000);
+      return;
+    }
+
+    // 普通点击：显示台词
+    let line;
+    if (isFirst) {
+      line = CAT_LINES[0];
+      isFirst = false;
+    } else {
+      lineIdx = (lineIdx % (CAT_LINES.length - 1)) + 1;
+      line = CAT_LINES[lineIdx];
+    }
+    showBubble(line, 4000);
+  });
+
+  // ── 拖动 ──
+  cat.addEventListener('mousedown', function(e) {
+    isDragging = false;
+    const rect = cat.getBoundingClientRect();
+    dragOffX = e.clientX - rect.left;
+    dragOffY = e.clientY - rect.top;
+    let moved = false;
+
+    function onMove(ev) {
+      if (!moved && (Math.abs(ev.clientX - e.clientX) > 3 || Math.abs(ev.clientY - e.clientY) > 3)) {
+        moved = true;
+        isDragging = true;
+      }
+      if (!isDragging) return;
+      const x = ev.clientX - dragOffX;
+      const y = ev.clientY - dragOffY;
+      cat.style.left = x + 'px';
+      cat.style.top = y + 'px';
+      cat.style.right = 'auto';
+      cat.style.bottom = 'auto';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      setTimeout(function(){ isDragging = false; }, 50);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+</script>
+
 </body>
 </html>
