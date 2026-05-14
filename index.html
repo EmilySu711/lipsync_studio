@@ -1184,18 +1184,11 @@
               <span style="color:var(--text2);">idle · a · i · u · e · o · open · blink1 · blink2 · blink3</span><br>
               <span id="enImportHint" style="display:none;color:var(--accent2);">英语额外口型：schwa · ae · uu · oo · w · f · th · m</span>
             </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <label class="btn-small primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-                🖼 口型文件夹
-                <input type="file" accept="image/*" webkitdirectory multiple
-                  style="display:none;" onchange="importFolder(this,'mouth')">
-              </label>
-              <label class="btn-small" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-                👁 眨眼文件夹
-                <input type="file" accept="image/*" webkitdirectory multiple
-                  style="display:none;" onchange="importFolder(this,'blink')">
-              </label>
-            </div>
+            <label class="btn-small primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              📁 选择文件夹导入
+              <input type="file" accept="image/*" webkitdirectory multiple
+                style="display:none;" onchange="importFolder(this,'all')">
+            </label>
           </div>
         </div>
         <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">待机帧（闭嘴、无口型时显示）</p>
@@ -2657,7 +2650,7 @@ async function importFolder(input, mode) {
         imported++;
       }
     } else {
-      // mouth: idle/a/i/u/e/o/open + EN phonemes
+      // 'mouth' or 'all': handle mouth shapes + blink in one pass
       const keyMap = { idle:'idle', a:'a', i:'i', u:'u', e:'e', o:'o', open:'open',
         schwa:'schwa', ae:'ae', uu:'uu', oo:'oo', w:'w', f:'f', th:'th', m:'m' };
       if (keyMap[base]) {
@@ -2665,6 +2658,12 @@ async function importFolder(input, mode) {
         const zone = document.getElementById('zone-' + keyMap[base]);
         if (zone) markZoneFilled(zone, dataUrl);
         if (keyMap[base] === 'idle') syncPreviewAspect();
+        imported++;
+      } else if (['blink1','blink2','blink3'].includes(base)) {
+        const idx = parseInt(base.replace('blink','')) - 1;
+        state.blinkFrames[idx] = dataUrl;
+        const zone = document.getElementById('zone-blink-' + idx);
+        if (zone) markZoneFilled(zone, dataUrl);
         imported++;
       }
     }
@@ -3051,6 +3050,7 @@ function generateTimeline() {
         }
       }
     }
+    checkAlignment(romajiText, syllables);
   }
 
   // Add blink events — each character only blinks during their OWN silence
@@ -3159,9 +3159,6 @@ function generateTimeline() {
 
   // Render emotion track
   renderEmotionTrack();
-
-  // Check romaji ↔ original text alignment (non-blocking, warn only)
-  checkAlignment(romajiText, syllables);
 
   // Show timeline
   document.getElementById('timelineSection').classList.add('visible');
@@ -4447,11 +4444,30 @@ async function startExport() {
 
   // Transparent mode needs VP9 with alpha channel
   const isTransparent = bgMode === 'transparent';
-  const mimeType = (isTransparent || MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))
-    ? 'video/webm;codecs=vp9,opus'
-    : 'video/webm';
+  let mimeType = window._exportMimeType || '';
+  if (!mimeType) {
+    const CODECS = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    for (const c of CODECS) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) { mimeType = c; break; }
+    }
+  }
+  if (!mimeType) {
+    showToast('❌ 此浏览器不支持 WebM 导出，请使用 Chrome 或 Edge', 'error');
+    document.getElementById('btnExport').disabled = false;
+    return;
+  }
+  if (isTransparent && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+    mimeType = 'video/webm;codecs=vp9,opus';
+  }
 
-  const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
+  let recorder;
+  try {
+    recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
+  } catch(e) {
+    showToast('❌ 导出初始化失败：' + e.message, 'error');
+    document.getElementById('btnExport').disabled = false;
+    return;
+  }
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
@@ -5262,6 +5278,66 @@ window.addEventListener('DOMContentLoaded', function() {
       if (modal) modal.style.display = 'none';
     }
   } catch(e) {}
+});
+
+// ==================== DEVICE & CAPABILITY CHECK ====================
+function checkDeviceSupport() {
+  const smallScreen = window.innerWidth < 900;
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  if (smallScreen && coarsePointer) {
+    document.body.innerHTML = `
+      <div style="position:fixed;inset:0;background:#0e0e12;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;padding:40px;text-align:center;gap:16px;font-family:sans-serif;">
+        <div style="font-size:48px;">💻</div>
+        <h2 style="font-size:20px;font-weight:600;color:#c084fc;margin:0;">需要桌面浏览器</h2>
+        <p style="font-size:13px;color:#64748b;line-height:1.8;max-width:300px;margin:0;">
+          LIPSYNC STUDIO 包含时间轴编辑、Canvas 渲染、本地视频编码等功能，需要较大屏幕和鼠标操作。<br><br>
+          推荐：<strong style="color:#94a3b8;">Chrome 或 Edge · 屏幕宽度 ≥ 900px</strong>
+        </p>
+      </div>`;
+    return false;
+  }
+  return true;
+}
+
+function detectCapabilities() {
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isSafari) {
+    setTimeout(function() {
+      showToast('⚠️ Safari 检测：导出的 WebM 在 Safari 中无法播放，建议改用 Chrome。', 'warning', 8000);
+    }, 1500);
+  }
+  const CODECS = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  let supportedMime = '';
+  if (window.MediaRecorder) {
+    for (const c of CODECS) {
+      if (MediaRecorder.isTypeSupported(c)) { supportedMime = c; break; }
+    }
+  }
+  window._exportMimeType = supportedMime;
+  const exportBtn = document.getElementById('btnExport');
+  if (!supportedMime && exportBtn) {
+    exportBtn.disabled = true;
+    exportBtn.textContent = '⬇ 导出不支持（请用 Chrome）';
+    exportBtn.title = '此浏览器不支持 WebM 导出';
+    exportBtn.style.cursor = 'not-allowed';
+  }
+  const testInput = document.createElement('input');
+  testInput.type = 'file';
+  if (!('webkitdirectory' in testInput)) {
+    document.querySelectorAll('input[webkitdirectory]').forEach(function(el) {
+      const label = el.closest('label');
+      if (label) label.style.display = 'none';
+    });
+  }
+}
+
+if (!checkDeviceSupport()) {
+  throw new Error('unsupported device');
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  detectCapabilities();
 });
 
 window.addEventListener('resize', () => {
