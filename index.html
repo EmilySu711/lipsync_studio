@@ -899,64 +899,28 @@
   }
   .en-phoneme-zone:hover::after { opacity: 1; }
 
-  /* ── Mobile / iPad responsive ── */
-
-  /* iPad landscape (≥1024px): mild adjustments */
-  @media (max-width: 1180px) {
-    .steps { grid-template-columns: 1fr; }
-    .preview-export { grid-template-columns: 1fr; }
-    .export-panel { min-width: unset; }
-    .app { padding: 20px 16px; }
-  }
-
-  /* Mobile / iPad portrait (≤768px): show notice */
-  @media (max-width: 768px) {
-    #mobileNotice { display: none; }
-    #mobileNotice.active { display: flex; pointer-events: all; }
-    .app { display: none; }
-    body.mobile-override #mobileNotice { display: none !important; pointer-events: none; }
-    body.mobile-override .app { display: block !important; }
-    body.mobile-override .app { padding: 10px; }
-    body.mobile-override .steps {
-      grid-template-columns: 1fr !important;
-      gap: 12px;
-    }
-    body.mobile-override .step { padding: 14px; }
-    body.mobile-override .preview-export {
-      grid-template-columns: 1fr !important;
-    }
-    body.mobile-override #previewCanvas {
-      max-width: 100% !important;
-      height: auto !important;
-    }
-    body.mobile-override .timeline-section { display: none !important; }
-    body.mobile-override .upload-grid {
-      grid-template-columns: repeat(3, 1fr) !important;
-    }
-    body.mobile-override .char-images-grid {
-      grid-template-columns: repeat(3, 1fr) !important;
-    }
-    body.mobile-override header h1 { font-size: 20px; }
-    body.mobile-override header p { display: none; }
-    body.mobile-override .seekbar-wrap { margin-top: 6px; }
-    body.mobile-override .modal-box { padding: 20px; }
-  }
-
-  #mobileNotice {
+  /* Unsupported screen */
+  #unsupportedScreen {
     display: none;
     position: fixed; inset: 0;
     background: var(--bg);
     flex-direction: column;
     align-items: center; justify-content: center;
-    padding: 32px; text-align: center;
-    z-index: 99999;
-    gap: 20px;
-    pointer-events: none;
+    padding: 40px; text-align: center;
+    z-index: 99999; gap: 16px;
   }
-  #mobileNotice.active {
-    display: flex;
-    pointer-events: all;
+  #unsupportedScreen h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px; font-weight: 600;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
+  #unsupportedScreen p {
+    font-size: 13px; color: var(--text3);
+    line-height: 1.8; max-width: 320px;
+  }
+  #unsupportedScreen .icon { font-size: 48px; }
   #mobileNotice .notice-icon { font-size: 48px; }
   #mobileNotice h2 {
     font-family: 'Rajdhani', sans-serif;
@@ -1095,12 +1059,15 @@
 </style>
 </head>
 <body>
-<!-- Mobile notice -->
-<div id="mobileNotice">
-  <div class="notice-icon">💻</div>
-  <h2>建议使用电脑访问</h2>
-  <p>LIPSYNC STUDIO 包含时间轴编辑、文件上传等复杂操作，在手机或竖屏平板上体验较差。<br>建议在电脑浏览器（Chrome）中使用。</p>
-  <button class="btn-continue" onclick="dismissMobileNotice()">我知道了，继续使用</button>
+<!-- Unsupported device screen -->
+<div id="unsupportedScreen">
+  <div class="icon">💻</div>
+  <h2>需要桌面浏览器</h2>
+  <p>
+    LIPSYNC STUDIO 是一个桌面生产力工具，包含时间轴编辑、Canvas 渲染、本地视频编码等功能，
+    不支持手机或 Safari 浏览器。<br><br>
+    推荐环境：<strong style="color:var(--text2);">Chrome 或 Edge · 屏幕宽度 ≥ 900px · 鼠标操作</strong>
+  </p>
 </div>
 
 <!-- Welcome / Disclaimer Modal -->
@@ -1686,16 +1653,6 @@
       <button class="btn-generate" id="btnGenerate" onclick="generateTimeline()">
         ▶ 分析音频 &amp; 生成时间轴
       </button>
-
-      <!-- Mobile timeline entry buttons (only shown on mobile after generate) -->
-      <div id="mobileTimelineBtns" style="display:none;margin-top:12px;">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">点击编辑各轨道：</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-small primary" onclick="openMobileTimeline('mouth')">👄 口型轴</button>
-          <button class="btn-small" onclick="openMobileTimeline('emotion')">😊 情绪轴</button>
-          <button class="btn-small" onclick="openMobileTimeline('subtitle')">💬 字幕轴</button>
-        </div>
-      </div>
 
       <!-- Timeline -->
       <div class="timeline-section" id="timelineSection">
@@ -2997,8 +2954,10 @@ function analyzeAudio(buffer) {
 
 // ==================== GENERATE TIMELINE ====================
 function generateTimeline() {
+  showToast('🔍 开始分析...', '', 3000);
   if (!state.audioBuffer) { showToast('❌ 请先上传音频文件', 'error'); return; }
   if (!state.images.idle) { showToast('❌ 请先上传 IDLE（待机）图片，就是最上方单独那个框', 'error'); return; }
+  showToast('🔍 音频和图片检查通过', '', 2000);
   if (state.lang === 'universal') {
     if (!state.images.open && !state.images.a) {
       showToast('❌ 通用模式请上传 OPEN（张嘴）图片', 'error'); return;
@@ -3007,6 +2966,7 @@ function generateTimeline() {
     const missingVowels = ['a','i','u','e','o'].filter(v => !state.images[v]);
     if (missingVowels.length === 5) { showToast('❌ 请至少上传一个元音口型图片（A/I/U/E/O）', 'error'); return; }
   }
+  showToast('🔍 正在分析音频...', '', 3000);
 
   const regions = analyzeAudio(state.audioBuffer);
   const voicedRegions = regions.filter(r => r.voiced);
@@ -5222,37 +5182,19 @@ function resetStateForLoad() {
   }
 }
 
-function dismissMobileNotice() {
-  const el = document.getElementById('mobileNotice');
-  if (el) el.classList.remove('active');
-  document.body.classList.add('mobile-override');
-  try { sessionStorage.setItem('lipsync_mobile_dismissed', '1'); } catch(e) {}
-  // Show welcome modal after dismissing
-  const modal = document.getElementById('welcomeModal');
-  if (modal) {
-    try {
-      if (!sessionStorage.getItem('lipsync_welcomed')) {
-        modal.style.display = 'flex';
-      }
-    } catch(e) {}
+function checkDeviceSupport() {
+  const smallScreen = window.innerWidth < 900;
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const unsupported = (smallScreen && coarsePointer) || isSafari;
+  if (unsupported) {
+    const el = document.getElementById('unsupportedScreen');
+    if (el) el.style.display = 'flex';
+    // Don't initialise anything — just stop here
+    return false;
   }
+  return true;
 }
-
-window.addEventListener('DOMContentLoaded', function() {
-  try {
-    if (sessionStorage.getItem('lipsync_mobile_dismissed')) {
-      document.body.classList.add('mobile-override');
-    } else if (window.innerWidth <= 768) {
-      const el = document.getElementById('mobileNotice');
-      if (el) el.classList.add('active');
-    }
-  } catch(e) {
-    if (window.innerWidth <= 768) {
-      const el = document.getElementById('mobileNotice');
-      if (el) el.classList.add('active');
-    }
-  }
-});
 
 function closeWelcomeModal() {
   const modal = document.getElementById('welcomeModal');
@@ -5274,6 +5216,12 @@ window.addEventListener('DOMContentLoaded', function() {
     }
   } catch(e) {}
 });
+
+// Run device check before anything else
+if (!checkDeviceSupport()) {
+  // Unsupported: stop all initialisation
+  throw new Error('Unsupported device — app not initialised');
+}
 
 window.addEventListener('resize', () => {
   if (state.audioBuffer) drawWaveform();
