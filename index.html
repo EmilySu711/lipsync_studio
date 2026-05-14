@@ -921,134 +921,9 @@
     line-height: 1.8; max-width: 320px;
   }
   #unsupportedScreen .icon { font-size: 48px; }
-  #mobileNotice .notice-icon { font-size: 48px; }
-  #mobileNotice h2 {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 20px; font-weight: 600;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  #mobileNotice p { font-size: 13px; color: var(--text3); line-height: 1.7; max-width: 300px; }
-  #mobileNotice .btn-continue {
-    padding: 8px 20px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text3); font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  #mobileNotice .btn-continue:hover { border-color: var(--accent2); color: var(--accent2); }
 
-  /* ── Mobile fullscreen timeline ── */
-  #mobileTimelineOverlay {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    z-index: 9000;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .mtl-header {
-    display: flex; align-items: center;
-    padding: 10px 14px; gap: 10px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .mtl-back {
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text2);
-    padding: 6px 10px; font-size: 13px; cursor: pointer;
-    white-space: nowrap;
-  }
-  .mtl-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 16px; font-weight: 600;
-    color: var(--accent); flex: 1;
-  }
-  .mtl-controls { display: flex; align-items: center; gap: 8px; }
-  .mtl-btn {
-    background: var(--accent); border: none;
-    border-radius: 6px; color: white;
-    width: 32px; height: 32px; font-size: 14px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-  }
-  .mtl-time {
-    font-family: 'Rajdhani', monospace;
-    font-size: 12px; color: var(--text3);
-    white-space: nowrap;
-  }
-  .mtl-seekbar {
-    width: 100%; height: 3px;
-    accent-color: var(--accent);
-    flex-shrink: 0;
-    margin: 0; padding: 0;
-    cursor: pointer;
-  }
-  .mtl-body {
-    display: flex; flex: 1;
-    overflow: hidden;
-  }
-  .mtl-left {
-    width: 80px; flex-shrink: 0;
-    overflow: hidden;
-    background: var(--surface2);
-    border-right: 1px solid var(--border);
-    position: relative;
-  }
-  .mtl-canvas-wrap {
-    width: 100%; height: 100%;
-    overflow-y: auto; overflow-x: hidden;
-  }
-  .mtl-canvas-wrap canvas {
-    display: block;
-    transform-origin: top left;
-  }
-  .mtl-right {
-    flex: 1; overflow-y: auto;
-    padding: 8px;
-  }
-  .mtl-seg-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    display: flex; align-items: center; gap: 8px;
-    flex-wrap: wrap;
-  }
-  .mtl-seg-item.selected { border-color: var(--accent); }
-  .mtl-seg-label {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 14px; font-weight: 600;
-    color: var(--accent); min-width: 28px;
-  }
-  .mtl-seg-time {
-    font-size: 11px; color: var(--text3); flex: 1;
-  }
-  .mtl-seg-inputs {
-    display: flex; gap: 6px; align-items: center;
-    width: 100%; margin-top: 4px;
-  }
-  .mtl-seg-inputs input {
-    flex: 1; padding: 4px 6px;
-    background: var(--surface3);
-    border: 1px solid var(--border);
-    border-radius: 4px; color: var(--text);
-    font-size: 12px; width: 0;
-  }
-  .mtl-seg-inputs span { font-size: 10px; color: var(--text3); white-space: nowrap; }
-  .mtl-seg-del {
-    background: transparent; border: 1px solid var(--danger);
-    color: var(--danger); border-radius: 4px;
-    padding: 3px 7px; font-size: 11px; cursor: pointer;
-  }
-  .mtl-empty {
-    text-align: center; color: var(--text3);
-    font-size: 12px; padding: 40px 20px;
-  }
+
+
 
   scrollbar-width: thin;
   scrollbar-color: var(--surface3) transparent;
@@ -1842,27 +1717,7 @@
 
   </div><!-- end steps -->
 
-  <!-- Mobile fullscreen timeline overlay -->
-  <div id="mobileTimelineOverlay" style="display:none;">
-    <div class="mtl-header">
-      <button class="mtl-back" onclick="closeMobileTimeline()">← 返回</button>
-      <span class="mtl-title" id="mtlTitle">口型轴</span>
-      <div class="mtl-controls">
-        <button class="mtl-btn" id="mtlPlayBtn" onclick="mtlPlayPause()">▶</button>
-        <span class="mtl-time" id="mtlTimeDisplay">0.00 / 0.00</span>
-      </div>
-    </div>
-    <input type="range" id="mtlSeekbar" min="0" max="1000" value="0" step="1"
-      oninput="mtlOnSeek(this.value)" class="mtl-seekbar">
-    <div class="mtl-body">
-      <div class="mtl-left" id="mtlLeft">
-        <div class="mtl-canvas-wrap" id="mtlCanvasWrap"></div>
-      </div>
-      <div class="mtl-right" id="mtlRight">
-        <div id="mtlList"></div>
-      </div>
-    </div>
-  </div>
+
 
 </div><!-- end app -->
 
@@ -2954,10 +2809,10 @@ function analyzeAudio(buffer) {
 
 // ==================== GENERATE TIMELINE ====================
 function generateTimeline() {
-  showToast('🔍 开始分析...', '', 3000);
+
   if (!state.audioBuffer) { showToast('❌ 请先上传音频文件', 'error'); return; }
   if (!state.images.idle) { showToast('❌ 请先上传 IDLE（待机）图片，就是最上方单独那个框', 'error'); return; }
-  showToast('🔍 音频和图片检查通过', '', 2000);
+
   if (state.lang === 'universal') {
     if (!state.images.open && !state.images.a) {
       showToast('❌ 通用模式请上传 OPEN（张嘴）图片', 'error'); return;
@@ -2966,7 +2821,7 @@ function generateTimeline() {
     const missingVowels = ['a','i','u','e','o'].filter(v => !state.images[v]);
     if (missingVowels.length === 5) { showToast('❌ 请至少上传一个元音口型图片（A/I/U/E/O）', 'error'); return; }
   }
-  showToast('🔍 正在分析音频...', '', 3000);
+
 
   const regions = analyzeAudio(state.audioBuffer);
   const voicedRegions = regions.filter(r => r.voiced);
@@ -3135,7 +2990,6 @@ function generateTimeline() {
   drawTimeline();
   renderPreviewFrame(0);
   showToast('时间轴生成完成！共 ' + state.segments.length + ' 个片段' + (state.subtitles.length ? '，' + state.subtitles.length + ' 条字幕' : ''), 'success');
-  showMobileTimelineBtns();
 }
 
 // ==================== WAVEFORM ====================
@@ -4258,12 +4112,6 @@ function updateTimeDisplay() {
     sb.value = Math.round((state.currentTime / state.audioDuration) * 1000);
   }
   if (st) st.textContent = cur + 's / ' + dur + 's';
-  // Sync mobile timeline if open
-  const overlay = document.getElementById('mobileTimelineOverlay');
-  if (overlay && overlay.style.display !== 'none') {
-    mtlSyncSeekbar();
-    mtlRenderCanvas();
-  }
 }
 
 let seekbarDragging = false;
@@ -4881,249 +4729,11 @@ async function loadProject(input) {
     }
 
     showToast('项目已读取！', 'success');
-    showMobileTimelineBtns();
-  } catch(e) {
+    } catch(e) {
     showToast('读取失败：' + e.message, 'error');
     console.error(e);
   }
   input.value = '';
-}
-
-// ==================== MOBILE TIMELINE ====================
-let mtlMode = 'mouth'; // 'mouth' | 'emotion' | 'subtitle'
-let mtlSelectedIdx = -1;
-
-function openMobileTimeline(mode) {
-  mtlMode = mode;
-  mtlSelectedIdx = -1;
-  const overlay = document.getElementById('mobileTimelineOverlay');
-  overlay.style.display = 'flex';
-  const titles = { mouth:'👄 口型轴', emotion:'😊 情绪轴', subtitle:'💬 字幕轴' };
-  document.getElementById('mtlTitle').textContent = titles[mode];
-  mtlRenderList();
-  mtlRenderCanvas();
-  mtlSyncSeekbar();
-}
-
-function closeMobileTimeline() {
-  document.getElementById('mobileTimelineOverlay').style.display = 'none';
-  // Sync any changes back to main timeline
-  drawTimeline();
-  renderEmotionTrack();
-  renderSubtitleTrack();
-}
-
-function mtlPlayPause() {
-  if (state.playing) {
-    pausePlayback();
-    document.getElementById('mtlPlayBtn').textContent = '▶';
-  } else {
-    startPlayback();
-    document.getElementById('mtlPlayBtn').textContent = '⏸';
-  }
-}
-
-function mtlOnSeek(val) {
-  if (!state.audioDuration) return;
-  const t = (parseInt(val) / 1000) * state.audioDuration;
-  seekTo(t);
-  mtlSyncSeekbar();
-  mtlRenderCanvas();
-}
-
-function mtlSyncSeekbar() {
-  const sb = document.getElementById('mtlSeekbar');
-  const td = document.getElementById('mtlTimeDisplay');
-  if (!sb || !state.audioDuration) return;
-  sb.value = Math.round((state.currentTime / state.audioDuration) * 1000);
-  if (td) td.textContent = state.currentTime.toFixed(2) + ' / ' + state.audioDuration.toFixed(2);
-}
-
-// Called during playback to keep seekbar in sync
-const _origAnimPlayback = window.animatePlayback;
-
-function mtlRenderList() {
-  const list = document.getElementById('mtlList');
-  if (!list) return;
-  list.innerHTML = '';
-
-  if (mtlMode === 'mouth') {
-    const segs = state.segments.filter(function(s){ return s.type !== 'blink'; })
-      .sort(function(a,b){ return a.start - b.start; });
-    if (!segs.length) { list.innerHTML = '<div class="mtl-empty">暂无口型片段<br>请先生成时间轴</div>'; return; }
-    segs.forEach(function(seg, i) {
-      const globalIdx = state.segments.indexOf(seg);
-      list.appendChild(mtlMakeSegItem(
-        seg.type.toUpperCase(),
-        seg.start, seg.end,
-        globalIdx, 'mouth',
-        null
-      ));
-    });
-    // Blink segs
-    const blinks = state.segments.filter(function(s){ return s.type === 'blink'; })
-      .sort(function(a,b){ return a.start - b.start; });
-    if (blinks.length) {
-      const div = document.createElement('div');
-      div.style.cssText = 'font-size:11px;color:var(--text3);margin:10px 0 6px;';
-      div.textContent = '眨眼帧';
-      list.appendChild(div);
-      blinks.forEach(function(seg) {
-        const globalIdx = state.segments.indexOf(seg);
-        list.appendChild(mtlMakeSegItem('B', seg.start, seg.end, globalIdx, 'mouth', null));
-      });
-    }
-  } else if (mtlMode === 'emotion') {
-    if (!state.emotionSegments.length) {
-      list.innerHTML = '<div class="mtl-empty">暂无情绪片段<br>返回后在情绪轴添加</div>'; return;
-    }
-    state.emotionSegments.forEach(function(seg, idx) {
-      const label = (EMOTION_LABELS[seg.emotion] || '?') + ' ' +
-        (seg.emotion === 'custom' ? state.customEmotionName : '');
-      list.appendChild(mtlMakeSegItem(label, seg.start, seg.end, idx, 'emotion', null));
-    });
-  } else if (mtlMode === 'subtitle') {
-    if (!state.subtitles.length) {
-      list.innerHTML = '<div class="mtl-empty">暂无字幕<br>返回后在字幕设置添加</div>'; return;
-    }
-    state.subtitles.forEach(function(sub, idx) {
-      list.appendChild(mtlMakeSegItem(
-        sub.original || '（空）', sub.start, sub.end, idx, 'subtitle', sub
-      ));
-    });
-  }
-}
-
-function mtlMakeSegItem(label, start, end, idx, mode, extra) {
-  const item = document.createElement('div');
-  item.className = 'mtl-seg-item' + (idx === mtlSelectedIdx ? ' selected' : '');
-  item.onclick = function() {
-    mtlSelectedIdx = idx;
-    mtlRenderList();
-    mtlRenderCanvas();
-  };
-
-  item.innerHTML =
-    '<div class="mtl-seg-label">' + label + '</div>' +
-    '<div class="mtl-seg-time">' + start.toFixed(2) + 's — ' + end.toFixed(2) + 's</div>' +
-    (mode === 'subtitle' && extra ? '<div style="font-size:10px;color:var(--text3);width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (extra.translation || '') + '</div>' : '') +
-    '<div class="mtl-seg-inputs">' +
-      '<span>开始</span>' +
-      '<input type="number" value="' + start.toFixed(2) + '" step="0.01" min="0" ' +
-        'onchange="mtlUpdateSeg(' + idx + ',\'start\',parseFloat(this.value))">' +
-      '<span>结束</span>' +
-      '<input type="number" value="' + end.toFixed(2) + '" step="0.01" min="0" ' +
-        'onchange="mtlUpdateSeg(' + idx + ',\'end\',parseFloat(this.value))">' +
-      '<button class="mtl-seg-del" onclick="event.stopPropagation();mtlDeleteSeg(' + idx + ')">删除</button>' +
-    '</div>';
-  return item;
-}
-
-function mtlUpdateSeg(idx, field, val) {
-  if (mtlMode === 'mouth') {
-    if (!state.segments[idx]) return;
-    state.segments[idx][field] = val;
-  } else if (mtlMode === 'emotion') {
-    if (!state.emotionSegments[idx]) return;
-    state.emotionSegments[idx][field] = val;
-    if (state.emotionSegments[idx].end <= state.emotionSegments[idx].start)
-      state.emotionSegments[idx].end = state.emotionSegments[idx].start + 0.1;
-  } else if (mtlMode === 'subtitle') {
-    if (!state.subtitles[idx]) return;
-    state.subtitles[idx][field] = val;
-  }
-  mtlRenderCanvas();
-}
-
-function mtlDeleteSeg(idx) {
-  if (!window.confirm('删除这个片段？')) return;
-  if (mtlMode === 'mouth') {
-    state.segments.splice(idx, 1);
-  } else if (mtlMode === 'emotion') {
-    state.emotionSegments.splice(idx, 1);
-  } else if (mtlMode === 'subtitle') {
-    state.subtitles.splice(idx, 1);
-  }
-  mtlSelectedIdx = -1;
-  mtlRenderList();
-  mtlRenderCanvas();
-}
-
-function mtlRenderCanvas() {
-  // Draw a rotated version of the relevant track onto a canvas in mtlCanvasWrap
-  const wrap = document.getElementById('mtlCanvasWrap');
-  if (!wrap || !state.audioDuration) return;
-  // We draw horizontally then rotate with CSS
-  // Canvas width = container height (rotated), height = track lanes * LANE_H
-  const containerH = wrap.parentElement.clientHeight || 400;
-  const containerW = 70; // the left panel width
-  const PPS = containerH / state.audioDuration; // pixels per second (vertical)
-  const totalH = Math.ceil(state.audioDuration * PPS);
-
-  let canvas = wrap.querySelector('canvas');
-  if (!canvas) { canvas = document.createElement('canvas'); wrap.appendChild(canvas); }
-
-  // We'll draw normally (horizontal) then rotate
-  // canvas width = totalH (time axis), height = containerW (track width)
-  canvas.width = totalH;
-  canvas.height = containerW;
-  canvas.style.cssText = 'transform: rotate(90deg) translateY(-' + containerW + 'px); transform-origin: top left;';
-  // Wrap needs to be tall enough
-  wrap.style.height = totalH + 'px';
-
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#16161e';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Draw segments
-  let segs = [];
-  if (mtlMode === 'mouth') {
-    segs = state.segments.map(function(s, i) {
-      return { start: s.start, end: s.end, label: s.type.toUpperCase(),
-        color: s.type === 'blink' ? '#818cf8' : (TRACK_COLORS[s.type] || '#c084fc'), idx: i };
-    });
-  } else if (mtlMode === 'emotion') {
-    segs = state.emotionSegments.map(function(s, i) {
-      return { start: s.start, end: s.end, label: EMOTION_LABELS[s.emotion] || '?',
-        color: EMOTION_COLORS[s.emotion] || '#888', idx: i };
-    });
-  } else if (mtlMode === 'subtitle') {
-    segs = state.subtitles.map(function(s, i) {
-      return { start: s.start, end: s.end, label: (s.original || '').substring(0,4),
-        color: '#34d399', idx: i };
-    });
-  }
-
-  segs.forEach(function(seg) {
-    const x = seg.start * PPS;
-    const w = Math.max(3, (seg.end - seg.start) * PPS);
-    const selected = seg.idx === mtlSelectedIdx;
-    ctx.fillStyle = selected ? seg.color : seg.color + 'aa';
-    ctx.beginPath();
-    ctx.roundRect(x, 4, w, containerW - 8, 3);
-    ctx.fill();
-    if (w > 16) {
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 10px monospace';
-      ctx.fillText(seg.label, x + 3, containerW / 2 + 3);
-    }
-  });
-
-  // Playhead
-  const px = state.currentTime * PPS;
-  ctx.strokeStyle = '#c084fc';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(px, 0); ctx.lineTo(px, containerW);
-  ctx.stroke();
-}
-
-// Show mobile timeline buttons after generate
-function showMobileTimelineBtns() {
-  if (window.innerWidth <= 768) {
-    const btns = document.getElementById('mobileTimelineBtns');
-    if (btns) btns.style.display = 'block';
-  }
 }
 
 // ==================== INIT ====================
