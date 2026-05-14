@@ -913,6 +913,8 @@
   @media (max-width: 768px) {
     #mobileNotice { display: flex !important; }
     .app { display: none; }
+    body.mobile-override #mobileNotice { display: none !important; }
+    body.mobile-override .app { display: block !important; }
   }
 
   #mobileNotice {
@@ -4808,8 +4810,7 @@ function resetStateForLoad() {
 function dismissMobileNotice() {
   const el = document.getElementById('mobileNotice');
   if (el) el.style.display = 'none';
-  const app = document.querySelector('.app');
-  if (app) app.style.display = '';
+  document.body.classList.add('mobile-override');
   try { sessionStorage.setItem('lipsync_mobile_dismissed', '1'); } catch(e) {}
 }
 
