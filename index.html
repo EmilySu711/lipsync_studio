@@ -1518,8 +1518,8 @@
           <span style="font-size:11px;color:var(--text3);">🎋 诗词模式</span>
           <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
             <input type="checkbox" id="poetryModeToggle" style="opacity:0;width:0;height:0;"
-              onchange="state.poetryMode=this.checked;document.getElementById('poetryControls').style.display=this.checked?'':'none';">
-            <span style="position:absolute;inset:0;background:var(--surface3);border-radius:20px;transition:0.2s;"></span>
+              onchange="state.poetryMode=this.checked;document.getElementById('poetryControls').style.display=this.checked?'':'none';document.getElementById('poetryToggleBg').style.background=this.checked?'var(--accent)':'var(--surface3)';document.getElementById('poetryToggleKnob').style.left=this.checked?'18px':'2px';">
+            <span id="poetryToggleBg" style="position:absolute;inset:0;background:var(--surface3);border-radius:20px;transition:0.2s;"></span>
             <span id="poetryToggleKnob" style="position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s;"></span>
           </label>
         </div>
