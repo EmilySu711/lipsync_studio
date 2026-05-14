@@ -1369,6 +1369,18 @@
               <div class="upload-zone" id="zone-c1-blink"><input type="file" accept="image/*" onchange="handleCharImage(1,'blink',this)"><div class="label" style="font-size:10px;">BLINK</div></div>
               <!-- open: only in universal mode -->
               <div class="upload-zone" id="zone-c1-open" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'open',this)"><div class="label" style="font-size:10px;">OPEN</div></div>
+              <!-- EN extra phonemes: shown in EN mode only -->
+              <div id="c1-en-phonemes" style="display:none;display:contents;">
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-schwa" data-tip="/ə/ about" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'schwa',this)"><div class="label" style="font-size:11px;">ə</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-ae" data-tip="/æ/ cat" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'ae',this)"><div class="label" style="font-size:11px;">æ</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-uu" data-tip="/ʊ/ book" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'uu',this)"><div class="label" style="font-size:11px;">ʊ</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-oo" data-tip="/ɔ/ law" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'oo',this)"><div class="label" style="font-size:11px;">ɔ</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-w" data-tip="/w/ we" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'w',this)"><div class="label" style="font-size:11px;">w</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-f" data-tip="/f/ fish" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'f',this)"><div class="label" style="font-size:11px;">f</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-th" data-tip="/th/ this" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'th',this)"><div class="label" style="font-size:11px;">th</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c1-m" data-tip="/m/ mom" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(1,'m',this)"><div class="label" style="font-size:11px;">m</div></div>
+              </div>
+
             </div>
           </div>
           <!-- char 2 images -->
@@ -1389,6 +1401,18 @@
               </div>
               <div class="upload-zone" id="zone-c2-blink"><input type="file" accept="image/*" onchange="handleCharImage(2,'blink',this)"><div class="label" style="font-size:10px;">BLINK</div></div>
               <div class="upload-zone" id="zone-c2-open" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'open',this)"><div class="label" style="font-size:10px;">OPEN</div></div>
+              <!-- EN extra phonemes: shown in EN mode only -->
+              <div id="c2-en-phonemes" style="display:none;display:contents;">
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-schwa" data-tip="/ə/ about" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'schwa',this)"><div class="label" style="font-size:11px;">ə</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-ae" data-tip="/æ/ cat" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'ae',this)"><div class="label" style="font-size:11px;">æ</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-uu" data-tip="/ʊ/ book" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'uu',this)"><div class="label" style="font-size:11px;">ʊ</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-oo" data-tip="/ɔ/ law" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'oo',this)"><div class="label" style="font-size:11px;">ɔ</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-w" data-tip="/w/ we" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'w',this)"><div class="label" style="font-size:11px;">w</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-f" data-tip="/f/ fish" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'f',this)"><div class="label" style="font-size:11px;">f</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-th" data-tip="/th/ this" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'th',this)"><div class="label" style="font-size:11px;">th</div></div>
+                <div class="upload-zone en-phoneme-zone" id="zone-c2-m" data-tip="/m/ mom" style="display:none;"><input type="file" accept="image/*" onchange="handleCharImage(2,'m',this)"><div class="label" style="font-size:11px;">m</div></div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1954,8 +1978,8 @@ const state = {
   minSegDuration: 0.08,  // minimum segment duration in poetry mode
   charMode: 'single',   // 'single' | 'multi'
   charImages: {
-    1: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
-    2: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
+    1: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null, schwa:null, ae:null, uu:null, oo:null, w:null, f:null, th:null, m:null },
+    2: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null, schwa:null, ae:null, uu:null, oo:null, w:null, f:null, th:null, m:null },
   },
   // subtitle state
   subtitles: [],
@@ -2056,11 +2080,18 @@ function setLang(lang) {
   // Multi-char: hide/show vowel zones, show/hide open zones per char
   const vowelDisplay = isUni ? 'none' : 'contents';
   const openDisplay = isUni ? '' : 'none';
+  const enPhonemeDisplay = isEN ? '' : 'none';
   [1,2].forEach(function(ci) {
     const vw = document.getElementById('c' + ci + '-vowels');
     if (vw) vw.style.display = vowelDisplay;
     const op = document.getElementById('zone-c' + ci + '-open');
     if (op) op.style.display = openDisplay;
+    // EN extra phonemes
+    const enKeys = ['schwa','ae','uu','oo','w','f','th','m'];
+    enKeys.forEach(function(key) {
+      const z = document.getElementById('zone-c' + ci + '-' + key);
+      if (z) z.style.display = (!isUni && isEN) ? '' : 'none';
+    });
   });
   // Emotion keys: in universal mode only show idle/open/blink in emotion grids
   // (handled in buildEmotionGrids via EMOTION_KEYS_FOR_LANG)
@@ -4119,7 +4150,14 @@ function getImage(src) {
 
 function getImgSrc(key, charIdx) {
   if (state.charMode === 'multi' && charIdx) {
-    return state.charImages[charIdx]?.[key] || state.charImages[1][key] || null;
+    // Try exact key first, then EN phoneme fallback, then char1 fallback
+    const direct = state.charImages[charIdx]?.[key];
+    if (direct) return direct;
+    if (EN_PHONEME_FALLBACK[key]) {
+      const fb = state.charImages[charIdx]?.[EN_PHONEME_FALLBACK[key]];
+      if (fb) return fb;
+    }
+    return state.charImages[1]?.[key] || null;
   }
   return state.images[key] || null;
 }
