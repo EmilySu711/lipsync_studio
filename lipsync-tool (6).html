@@ -899,6 +899,52 @@
   }
   .en-phoneme-zone:hover::after { opacity: 1; }
 
+  /* ── Mobile / iPad responsive ── */
+
+  /* iPad landscape (≥1024px): mild adjustments */
+  @media (max-width: 1180px) {
+    .steps { grid-template-columns: 1fr; }
+    .preview-export { grid-template-columns: 1fr; }
+    .export-panel { min-width: unset; }
+    .app { padding: 20px 16px; }
+  }
+
+  /* Mobile / iPad portrait (≤768px): show notice */
+  @media (max-width: 768px) {
+    #mobileNotice { display: flex !important; }
+    .app { display: none; }
+  }
+
+  #mobileNotice {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px; text-align: center;
+    z-index: 99999;
+    gap: 20px;
+  }
+  #mobileNotice .notice-icon { font-size: 48px; }
+  #mobileNotice h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px; font-weight: 600;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  #mobileNotice p { font-size: 13px; color: var(--text3); line-height: 1.7; max-width: 300px; }
+  #mobileNotice .btn-continue {
+    padding: 8px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text3); font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #mobileNotice .btn-continue:hover { border-color: var(--accent2); color: var(--accent2); }
+
   scrollbar-width: thin;
   scrollbar-color: var(--surface3) transparent;
 
@@ -908,6 +954,14 @@
 </style>
 </head>
 <body>
+<!-- Mobile notice -->
+<div id="mobileNotice">
+  <div class="notice-icon">💻</div>
+  <h2>建议使用电脑访问</h2>
+  <p>LIPSYNC STUDIO 包含时间轴编辑、文件上传等复杂操作，在手机或竖屏平板上体验较差。<br>建议在电脑浏览器（Chrome）中使用。</p>
+  <button class="btn-continue" onclick="dismissMobileNotice()">我知道了，继续使用</button>
+</div>
+
 <!-- Welcome / Disclaimer Modal -->
 <div class="modal-overlay" id="welcomeModal">
   <div class="modal-box">
@@ -993,11 +1047,18 @@
               <span style="color:var(--text2);">idle · a · i · u · e · o · open · blink1 · blink2 · blink3</span><br>
               <span id="enImportHint" style="display:none;color:var(--accent2);">英语额外口型：schwa · ae · uu · oo · w · f · th · m</span>
             </div>
-            <label class="btn-small primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-              🖼 选择口型文件夹
-              <input type="file" accept="image/*" webkitdirectory multiple
-                style="display:none;" onchange="importFolder(this,'mouth')">
-            </label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <label class="btn-small primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                🖼 口型文件夹
+                <input type="file" accept="image/*" webkitdirectory multiple
+                  style="display:none;" onchange="importFolder(this,'mouth')">
+              </label>
+              <label class="btn-small" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                👁 眨眼文件夹
+                <input type="file" accept="image/*" webkitdirectory multiple
+                  style="display:none;" onchange="importFolder(this,'blink')">
+              </label>
+            </div>
           </div>
         </div>
         <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">待机帧（闭嘴、无口型时显示）</p>
@@ -1283,7 +1344,7 @@
       </div>
 
       <div class="audio-upload" id="audioUpload">
-        <input type="file" accept="audio/*" onchange="handleAudio(this)">
+        <input type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg,audio/x-m4a,.mp3,.wav,.m4a,.aac,.ogg,.mp4" onchange="handleAudio(this)">
         <div class="audio-icon">🎵</div>
         <div class="audio-info">
           <div class="name" id="audioName">点击上传音频文件</div>
@@ -4743,6 +4804,23 @@ function resetStateForLoad() {
     buildEmotionGrids();
   }
 }
+
+function dismissMobileNotice() {
+  const el = document.getElementById('mobileNotice');
+  if (el) el.style.display = 'none';
+  const app = document.querySelector('.app');
+  if (app) app.style.display = '';
+  try { sessionStorage.setItem('lipsync_mobile_dismissed', '1'); } catch(e) {}
+}
+
+// Check if already dismissed this session
+window.addEventListener('DOMContentLoaded', function() {
+  try {
+    if (sessionStorage.getItem('lipsync_mobile_dismissed')) {
+      dismissMobileNotice();
+    }
+  } catch(e) {}
+});
 
 function closeWelcomeModal() {
   const modal = document.getElementById('welcomeModal');
