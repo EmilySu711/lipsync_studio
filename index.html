@@ -4917,6 +4917,7 @@ async function loadProject(input) {
     }
 
     showToast('项目已读取！', 'success');
+    showMobileTimelineBtns();
   } catch(e) {
     showToast('读取失败：' + e.message, 'error');
     console.error(e);
@@ -5155,7 +5156,7 @@ function mtlRenderCanvas() {
 
 // Show mobile timeline buttons after generate
 function showMobileTimelineBtns() {
-  if (document.body.classList.contains('mobile-override')) {
+  if (window.innerWidth <= 768) {
     const btns = document.getElementById('mobileTimelineBtns');
     if (btns) btns.style.display = 'block';
   }
