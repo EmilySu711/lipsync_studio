@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -1485,10 +1485,34 @@
       <audio id="audioPlayer" style="display:none;"></audio>
 
       <div id="romajiSection">
-      <p style="font-size:11px;color:var(--text3);margin-bottom:6px;" id="romajiLabel">
-        罗马音文本
-        <span style="color:var(--text3);font-size:10px;margin-left:6px;">用空格分隔每个音节</span>
-      </p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <p style="font-size:11px;color:var(--text3);margin:0;" id="romajiLabel">
+          罗马音文本
+          <span style="color:var(--text3);font-size:10px;margin-left:6px;">用空格分隔每个音节</span>
+        </p>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);">🎋 诗词模式</span>
+          <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
+            <input type="checkbox" id="poetryModeToggle" style="opacity:0;width:0;height:0;"
+              onchange="state.poetryMode=this.checked;document.getElementById('poetryControls').style.display=this.checked?'':'none';">
+            <span style="position:absolute;inset:0;background:var(--surface3);border-radius:20px;transition:0.2s;"></span>
+            <span id="poetryToggleKnob" style="position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s;"></span>
+          </label>
+        </div>
+      </div>
+      <!-- Poetry controls -->
+      <div id="poetryControls" style="display:none;margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">
+          诗词模式：用 <strong style="color:var(--text2);">｜</strong> 分隔词组（词内相邻音节自动首尾相连）<br>
+          例：<em>ya ma mi chi o | no bo ri na ga ra</em>
+        </div>
+        <div class="subtitle-pos-row">
+          <label>最短音节时长</label>
+          <input type="range" id="minSegDuration" min="0.02" max="0.5" step="0.01" value="0.08"
+            oninput="state.minSegDuration=parseFloat(this.value);document.getElementById('minSegDurVal').textContent=parseFloat(this.value).toFixed(2)+'s'">
+          <span class="subtitle-pos-val" id="minSegDurVal">0.08s</span>
+        </div>
+      </div>
       <textarea id="romajiInput" placeholder="例：ko n ni chi wa wa ta shi no na ma e wa...&#10;&#10;每个音节用空格隔开即可，工具会自动识别其中的元音(a/i/u/e/o)"></textarea>
 
       <div id="langHintJP" style="margin-top:10px;padding:10px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.7;">
@@ -1497,6 +1521,7 @@
         n / nn → 闭嘴 &nbsp;|&nbsp; 其他辅音结尾 → 对应元音口型
       </div>
       <div id="langHintEN" style="display:none;margin-top:10px;padding:10px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.8;">
+        <span style="color:#fbbf24;">⚠️ 英语模式建议使用纯人声，背景音乐会导致角色持续张嘴。</span><br>
         <strong style="color:var(--text2);">英语输入说明</strong><br>
         <strong style="color:var(--text2);">方式一：普通英文</strong> 直接输入单词，工具识别末尾元音。例：<em>hello how are you today</em><br>
         <strong style="color:var(--text2);">方式二：Arpabet 音标</strong> 每个音素用空格分隔，工具自动识别。例：<em>HH AH0 L OW1 HH AW1 AA1 R Y UW0 T AH0 D EY1</em><br>
@@ -1925,6 +1950,8 @@ const state = {
   bgImageUrl: null,
   // new
   lang: 'jp',           // 'jp' | 'en' | 'universal'
+  poetryMode: false,
+  minSegDuration: 0.08,  // minimum segment duration in poetry mode
   charMode: 'single',   // 'single' | 'multi'
   charImages: {
     1: { idle:null, a:null, i:null, u:null, e:null, o:null, blink:null, open:null },
@@ -2823,8 +2850,10 @@ async function handleAudio(input) {
   // Decode for waveform
   const arrayBuffer = await file.arrayBuffer();
   if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (state.audioCtx.state === 'suspended') await state.audioCtx.resume();
   state.audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
   state.audioDuration = state.audioBuffer.duration;
+  drawWaveform();
   showToast('音频加载成功，时长 ' + state.audioDuration.toFixed(2) + 's', 'success');
 }
 
@@ -2895,26 +2924,34 @@ function parseRomaji(text) {
   if (state.charMode === 'multi') {
     const result = [];
     for (const line of text.split('\n')) {
-      // Match [N] or [N:lang] prefix
       const m = line.match(/^\[(\d+)(?::([a-z]+))?\]\s*(.*)/);
       if (!m) continue;
       const charIdx = parseInt(m[1]);
-      const lineLang = m[2] || state.lang; // per-line lang override, fallback to global
+      const lineLang = m[2] || state.lang;
       const words = m[3].trim().split(/\s+/);
+      let isWordStart = true;
       for (const w of words) {
+        if (w === '|') { isWordStart = true; continue; }
         const vowel = extractVowelForLang(w, lineLang);
-        if (vowel !== null) result.push({ syllable: w, vowel, charIdx, lang: lineLang });
+        if (vowel !== null) result.push({ syllable: w, vowel, charIdx, lang: lineLang, isWordBoundary: isWordStart });
+        isWordStart = false;
       }
     }
     return result;
   }
-  // Single-char
-  return text.trim().split(/\s+/).map(s => ({
-    syllable: s,
-    vowel: extractVowel(s),
-    charIdx: 1,
-    lang: state.lang,
-  })).filter(x => x.vowel !== null);
+  // Single-char: support | as word boundary marker
+  const tokens = text.trim().split(/\s+/);
+  const result = [];
+  let isWordStart = true;
+  for (const token of tokens) {
+    if (token === '|') { isWordStart = true; continue; }
+    const vowel = extractVowelForLang(token, state.lang);
+    if (vowel !== null) {
+      result.push({ syllable: token, vowel, charIdx: 1, lang: state.lang, isWordBoundary: isWordStart });
+      isWordStart = false;
+    }
+  }
+  return result;
 }
 
 // ==================== AUDIO ANALYSIS ====================
@@ -2987,7 +3024,27 @@ function analyzeAudio(buffer) {
     r.end = Math.min(r.end, actualDuration);
     r.start = Math.min(r.start, actualDuration);
   }
-  return regions;
+
+  // Post-process: remove very short voiced bursts (< 40ms = likely noise/plosive)
+  const MIN_VOICED_DUR = 0.04;
+  const filtered = regions.map(function(r) {
+    if (r.voiced && (r.end - r.start) < MIN_VOICED_DUR) {
+      return { start: r.start, end: r.end, voiced: false };
+    }
+    return r;
+  });
+
+  // Merge adjacent same-voiced regions
+  const merged = [];
+  for (const r of filtered) {
+    if (merged.length && merged[merged.length-1].voiced === r.voiced) {
+      merged[merged.length-1].end = r.end;
+    } else {
+      merged.push({ start: r.start, end: r.end, voiced: r.voiced });
+    }
+  }
+
+  return merged;
 }
 
 // ==================== GENERATE TIMELINE ====================
@@ -3050,6 +3107,57 @@ function generateTimeline() {
         }
       }
     }
+
+    // ── EN连读: voiced区间内相邻片段之间的idle间隙用前一片段口型填满 ──
+    if (state.lang === 'en') {
+      const sorted = state.segments.slice().sort(function(a,b){ return a.start-b.start; });
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const cur = sorted[i], nxt = sorted[i+1];
+        const gap = nxt.start - cur.end;
+        // 如果间隙 < 0.15s 且在同一voiced region内，延长当前片段填满
+        if (gap > 0 && gap < 0.15) {
+          const inSameRegion = voicedRegions.some(function(r){
+            return r.start <= cur.start && r.end >= nxt.end;
+          });
+          if (inSameRegion) cur.end = nxt.start;
+        }
+      }
+    }
+
+    // ── 诗词模式: 词内相邻片段首尾相连 + 最短时长 ──
+    if (state.poetryMode) {
+      const minDur = state.minSegDuration || 0.08;
+      // 最短时长保证
+      state.segments.forEach(function(seg) {
+        if (seg.end - seg.start < minDur) seg.end = seg.start + minDur;
+      });
+      // 词内相连: 解析｜分割的词组，同一词内相邻片段首尾相连
+      const wordGroups = [];
+      let curGroup = [];
+      syllables.forEach(function(syl) {
+        if (syl.isWordBoundary) {
+          if (curGroup.length) wordGroups.push(curGroup);
+          curGroup = [syl];
+        } else {
+          curGroup.push(syl);
+        }
+      });
+      if (curGroup.length) wordGroups.push(curGroup);
+
+      // 对每个词组内的片段，按顺序首尾相连
+      let segIdx = 0;
+      wordGroups.forEach(function(group) {
+        const groupSegs = state.segments.slice(segIdx, segIdx + group.length);
+        for (let gi = 0; gi < groupSegs.length - 1; gi++) {
+          if (groupSegs[gi] && groupSegs[gi+1]) {
+            groupSegs[gi].end = groupSegs[gi+1].start;
+          }
+        }
+        segIdx += group.length;
+      });
+    }
+
+    // Check romaji alignment (in scope here)
     checkAlignment(romajiText, syllables);
   }
 
@@ -3160,6 +3268,7 @@ function generateTimeline() {
   // Render emotion track
   renderEmotionTrack();
 
+
   // Show timeline
   document.getElementById('timelineSection').classList.add('visible');
   document.getElementById('stepPreview').style.display = 'block';
@@ -3226,10 +3335,15 @@ function xToTime(x) {
 function drawTimeline() {
   const container = document.querySelector('.timeline-tracks');
   const canvas = document.getElementById('timelineCanvas');
-  const totalWidth = Math.max(container.clientWidth, state.audioDuration * state.pixelsPerSecond + 60);
-  canvas.width = totalWidth;
-  canvas.height = TRACK_ORDER.length * TRACK_H + 20;
-  document.querySelector('.timeline-tracks').style.height = canvas.height + 'px';
+  if (!container || !canvas) return;
+  // Cap max canvas width to avoid blank canvas bug at high zoom
+  const MAX_CANVAS_WIDTH = 32767; // browser canvas limit
+  const totalWidth = Math.min(MAX_CANVAS_WIDTH, Math.max(container.clientWidth, state.audioDuration * state.pixelsPerSecond + 60));
+  // Only reset canvas dimensions if they changed (resetting clears content)
+  if (canvas.width !== totalWidth) canvas.width = totalWidth;
+  const newH = TRACK_ORDER.length * TRACK_H + 20;
+  if (canvas.height !== newH) canvas.height = newH;
+  container.style.height = canvas.height + 'px';
 
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -3654,9 +3768,9 @@ function drawEmotionCanvas(canvasId, containerId, ci) {
   const container = document.getElementById(containerId);
   const canvas = document.getElementById(canvasId);
   if (!container || !canvas) return;
-  const totalW = Math.max(container.clientWidth, state.audioDuration * state.pixelsPerSecond + 60);
-  canvas.width = totalW;
-  canvas.height = 52;
+  const totalW = Math.min(32767, Math.max(container.clientWidth, state.audioDuration * state.pixelsPerSecond + 60));
+  if (canvas.width !== totalW) canvas.width = totalW;
+  if (canvas.height !== 52) canvas.height = 52;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#16161e';
   ctx.fillRect(0, 0, totalW, 52);
@@ -5340,6 +5454,27 @@ window.addEventListener('DOMContentLoaded', function() {
   detectCapabilities();
 });
 
+function checkDeviceSupport() {
+  const smallScreen = window.innerWidth < 900;
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  if (smallScreen && coarsePointer) {
+    document.body.innerHTML = `<div style="position:fixed;inset:0;background:#0e0e12;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;gap:16px;font-family:sans-serif;"><div style="font-size:48px;">💻</div><h2 style="font-size:20px;font-weight:600;color:#c084fc;margin:0;">需要桌面浏览器</h2><p style="font-size:13px;color:#64748b;line-height:1.8;max-width:300px;margin:0;">LIPSYNC STUDIO 需要较大屏幕和鼠标操作。<br><br>推荐：<strong style="color:#94a3b8;">Chrome 或 Edge · 屏幕宽度 ≥ 900px</strong></p></div>`;
+    return false;
+  }
+  return true;
+}
+function detectCapabilities() {
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isSafari) setTimeout(function(){ showToast('⚠️ Safari：导出的 WebM 在 Safari 中无法播放，建议改用 Chrome。','warning',8000); },1500);
+  const CODECS = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  let mime = '';
+  if (window.MediaRecorder) for (const c of CODECS) { if (MediaRecorder.isTypeSupported(c)){ mime=c; break; } }
+  window._exportMimeType = mime;
+  const btn = document.getElementById('btnExport');
+  if (!mime && btn) { btn.disabled=true; btn.textContent='⬇ 导出不支持（请用 Chrome）'; btn.style.cursor='not-allowed'; }
+}
+checkDeviceSupport();
+window.addEventListener('DOMContentLoaded', function(){ detectCapabilities(); });
 window.addEventListener('resize', () => {
   if (state.audioBuffer) drawWaveform();
   drawTimeline();
