@@ -911,12 +911,11 @@
 
   /* Mobile / iPad portrait (≤768px): show notice */
   @media (max-width: 768px) {
-    #mobileNotice { display: flex !important; }
+    #mobileNotice { display: none; }
+    #mobileNotice.active { display: flex; pointer-events: all; }
     .app { display: none; }
-    body.mobile-override #mobileNotice { display: none !important; }
+    body.mobile-override #mobileNotice { display: none !important; pointer-events: none; }
     body.mobile-override .app { display: block !important; }
-
-    /* Basic mobile layout after user dismisses notice */
     body.mobile-override .app { padding: 10px; }
     body.mobile-override .steps {
       grid-template-columns: 1fr !important;
@@ -952,6 +951,11 @@
     padding: 32px; text-align: center;
     z-index: 99999;
     gap: 20px;
+    pointer-events: none;
+  }
+  #mobileNotice.active {
+    display: flex;
+    pointer-events: all;
   }
   #mobileNotice .notice-icon { font-size: 48px; }
   #mobileNotice h2 {
@@ -5220,10 +5224,10 @@ function resetStateForLoad() {
 
 function dismissMobileNotice() {
   const el = document.getElementById('mobileNotice');
-  if (el) el.style.display = 'none';
+  if (el) el.classList.remove('active');
   document.body.classList.add('mobile-override');
   try { sessionStorage.setItem('lipsync_mobile_dismissed', '1'); } catch(e) {}
-  // Show welcome modal after dismissing mobile notice
+  // Show welcome modal after dismissing
   const modal = document.getElementById('welcomeModal');
   if (modal) {
     try {
@@ -5234,13 +5238,20 @@ function dismissMobileNotice() {
   }
 }
 
-// Check if already dismissed this session
 window.addEventListener('DOMContentLoaded', function() {
   try {
     if (sessionStorage.getItem('lipsync_mobile_dismissed')) {
-      dismissMobileNotice();
+      document.body.classList.add('mobile-override');
+    } else if (window.innerWidth <= 768) {
+      const el = document.getElementById('mobileNotice');
+      if (el) el.classList.add('active');
     }
-  } catch(e) {}
+  } catch(e) {
+    if (window.innerWidth <= 768) {
+      const el = document.getElementById('mobileNotice');
+      if (el) el.classList.add('active');
+    }
+  }
 });
 
 function closeWelcomeModal() {
