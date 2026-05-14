@@ -940,7 +940,7 @@
   <h2>需要桌面浏览器</h2>
   <p>
     LIPSYNC STUDIO 是一个桌面生产力工具，包含时间轴编辑、Canvas 渲染、本地视频编码等功能，
-    不支持手机或 Safari 浏览器。<br><br>
+    不支持手机端使用。<br><br>
     推荐环境：<strong style="color:var(--text2);">Chrome 或 Edge · 屏幕宽度 ≥ 900px · 鼠标操作</strong>
   </p>
 </div>
@@ -4257,13 +4257,33 @@ async function startExport() {
     ...audioDestination.stream.getAudioTracks()
   ]);
 
-  // Transparent mode needs VP9 with alpha channel
+  // Use pre-detected codec, with fallback chain
   const isTransparent = bgMode === 'transparent';
-  const mimeType = (isTransparent || MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))
-    ? 'video/webm;codecs=vp9,opus'
-    : 'video/webm';
+  let mimeType = window._exportMimeType || '';
+  if (!mimeType) {
+    const CODECS = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    for (const c of CODECS) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) { mimeType = c; break; }
+    }
+  }
+  if (!mimeType) {
+    showToast('❌ 此浏览器不支持 WebM 导出，建议使用 Chrome 或 Edge', 'error');
+    document.getElementById('btnExport').disabled = false;
+    return;
+  }
+  // VP9 preferred for transparent (alpha channel)
+  if (isTransparent && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+    mimeType = 'video/webm;codecs=vp9,opus';
+  }
 
-  const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
+  let recorder;
+  try {
+    recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
+  } catch(e) {
+    showToast('❌ 导出初始化失败：' + e.message, 'error');
+    document.getElementById('btnExport').disabled = false;
+    return;
+  }
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
@@ -4796,14 +4816,56 @@ function checkDeviceSupport() {
   const smallScreen = window.innerWidth < 900;
   const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  const unsupported = (smallScreen && coarsePointer) || isSafari;
-  if (unsupported) {
+
+  // Hard block: small screen + touch (phone)
+  if (smallScreen && coarsePointer) {
     const el = document.getElementById('unsupportedScreen');
     if (el) el.style.display = 'flex';
-    // Don't initialise anything — just stop here
     return false;
   }
+
+  // Soft warning: Safari can use the tool but exported WebM may not play in Safari
+  if (isSafari) {
+    setTimeout(function() {
+      showToast('⚠️ Safari 检测到：导出的 WebM 视频在 Safari 中无法播放，建议用 Chrome 打开导出文件，或改用 Chrome 使用本工具。', 'warning', 8000);
+    }, 1500);
+  }
+
   return true;
+}
+
+function detectCapabilities() {
+  // Export codec detection
+  const CODECS = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ];
+  let supportedMime = '';
+  if (window.MediaRecorder) {
+    for (const c of CODECS) {
+      if (MediaRecorder.isTypeSupported(c)) { supportedMime = c; break; }
+    }
+  }
+  window._exportMimeType = supportedMime;
+  const exportBtn = document.getElementById('btnExport');
+  if (!supportedMime && exportBtn) {
+    exportBtn.disabled = true;
+    exportBtn.title = '此浏览器不支持 WebM 导出（建议使用 Chrome 或 Edge）';
+    exportBtn.textContent = '⬇ 导出不支持（请用 Chrome）';
+    exportBtn.style.opacity = '0.4';
+    exportBtn.style.cursor = 'not-allowed';
+  }
+
+  // Folder import detection
+  const testInput = document.createElement('input');
+  testInput.type = 'file';
+  if (!('webkitdirectory' in testInput)) {
+    document.querySelectorAll('input[webkitdirectory]').forEach(function(el) {
+      const label = el.closest('label');
+      if (label) label.style.display = 'none';
+    });
+  }
 }
 
 function closeWelcomeModal() {
@@ -4832,6 +4894,10 @@ if (!checkDeviceSupport()) {
   // Unsupported: stop all initialisation
   throw new Error('Unsupported device — app not initialised');
 }
+
+window.addEventListener('DOMContentLoaded', function() {
+  detectCapabilities();
+});
 
 window.addEventListener('resize', () => {
   if (state.audioBuffer) drawWaveform();
