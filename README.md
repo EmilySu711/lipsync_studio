@@ -123,7 +123,7 @@ README.md
 
 ## Author
 
-Emily Su · BSc Biomedical Engineering, King's College London  
+E·S 
 [Bilibili](https://space.bilibili.com/372684842) · [Xiaohongshu](https://www.xiaohongshu.com/user/profile/649febf1000000000a020352)
 
 Developed with assistance from Claude (Anthropic).
