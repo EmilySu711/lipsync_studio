@@ -1134,7 +1134,7 @@
         目前 Bilibili 有实况视频更新中，线索还少所以剧情还没完全展开，
         但如果你是 Hetalia 粉丝欢迎来看看 🙏
       </p>
-      <p style="margin-top:8px;font-size:10px;color:var(--text3);opacity:0.6;">本工具的开发有 AI（Claude by Anthropic）辅助。</p>
+      <p style="margin-top:8px;font-size:10px;color:var(--text3);opacity:0.6;">本工具的开发有 AI（Claude by Anthropic）辅助。感谢 Lucian 协助测试。</p>
     </div>
 
     <button class="modal-confirm-btn" onclick="closeWelcomeModal()">
@@ -1920,6 +1920,9 @@
             </div>
           </div>
           <button class="btn-export" id="btnExport" onclick="startExport()">⬇ 导出 WebM</button>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6;">
+            ⚠️ 导出过程中请勿切换标签页或最小化窗口，否则浏览器会限制渲染速度导致输出错误。
+          </div>
           <div id="exportProgress">
             <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
             <div id="progressText">准备中...</div>
