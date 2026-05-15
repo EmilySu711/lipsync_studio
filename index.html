@@ -2709,7 +2709,16 @@ function clearZone(zone) {
   else if (id === 'zone-u') state.images.u = null;
   else if (id === 'zone-e') state.images.e = null;
   else if (id === 'zone-o') state.images.o = null;
+  else if (id === 'zone-open') state.images.open = null;
+  else {
+    // EN phonemes and any other zone-{key} pattern
+    const keyMatch = id.match(/^zone-([a-z]+)$/);
+    if (keyMatch && state.images.hasOwnProperty(keyMatch[1])) {
+      state.images[keyMatch[1]] = null;
+    }
+  }
 
+  updateTrackOrder();
   if (state.segments.length > 0) renderPreviewFrame(state.currentTime);
 }
 
@@ -3360,6 +3369,7 @@ function generateTimeline() {
   drawWaveform();
   drawTimeline();
   renderPreviewFrame(0);
+  updateTrackOrder(); // refresh track list based on actual segment types
   showToast('时间轴生成完成！共 ' + state.segments.length + ' 个片段' + (state.subtitles.length ? '，' + state.subtitles.length + ' 条字幕' : ''), 'success');
   showMobileTimelineBtns();
 }
@@ -3408,26 +3418,19 @@ let TRACK_ORDER = ['a','i','u','e','o','blink'];
 function updateTrackOrder() {
   if (state.lang === 'universal') {
     TRACK_ORDER = ['open','blink'];
-  } else if (state.lang === 'en') {
-    // Base vowels always included, EN extras only if uploaded
-    const base = ['a','i','u','e','o'];
-    const extras = ['schwa','ae','uu','oo','w','f','th','m'];
-    const active = base.concat(extras.filter(function(k) {
-      return state.images[k] != null;
-    }));
-    active.push('blink');
-    TRACK_ORDER = active;
-  } else {
-    // JP: only include vowels that have images uploaded (plus always blink)
-    const base = ['a','i','u','e','o'];
-    const active = base.filter(function(k) {
-      return state.images[k] != null;
-    });
-    // Always show at least one vowel track even if nothing uploaded
-    if (active.length === 0) active.push(...base);
-    active.push('blink');
-    TRACK_ORDER = active;
+    drawTimeline();
+    return;
   }
+  const all = state.lang === 'en'
+    ? ['a','i','u','e','o','schwa','ae','uu','oo','w','f','th','m']
+    : ['a','i','u','e','o'];
+  // Only show tracks where image is uploaded
+  let active = all.filter(function(k) { return state.images[k] != null; });
+  // Nothing uploaded yet → show default base set so timeline isn't empty
+  if (active.length === 0) active = ['a','i','u','e','o'];
+  // Always include blink track
+  active.push('blink');
+  TRACK_ORDER = active;
   drawTimeline();
 }
 const TRACK_COLORS = {
