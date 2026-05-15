@@ -3591,18 +3591,15 @@ const timelineCanvas = document.getElementById('timelineCanvas');
 const timelineTracks = document.getElementById('mainTimelineTracks');
 
 function getCanvasMX(e) {
-  // Returns X in canvas pixel coordinates (same space as drawTimeline uses)
-  // canvas pixel X = CSS offset from canvas left * scaleX + scrollLeft
-  const rect = timelineCanvas.getBoundingClientRect();
-  const scaleX = timelineCanvas.width / rect.width;
-  return (e.clientX - rect.left) * scaleX + timelineTracks.scrollLeft;
+  // Use container rect (not canvas rect) - canvas scrolls inside container
+  // so canvas.getBoundingClientRect().left changes with scroll, causing double-counting
+  const rect = timelineTracks.getBoundingClientRect();
+  return (e.clientX - rect.left) + timelineTracks.scrollLeft;
 }
 
 function getCanvasMY(e) {
-  // Returns Y in canvas pixel coordinates
-  const rect = timelineCanvas.getBoundingClientRect();
-  const scaleY = timelineCanvas.height / rect.height;
-  return (e.clientY - rect.top) * scaleY;
+  const rect = timelineTracks.getBoundingClientRect();
+  return (e.clientY - rect.top);
 }
 
 function canvasXToTime(cx) {
@@ -3618,7 +3615,6 @@ function timeToCanvasX(t) {
 timelineTracks.addEventListener('dblclick', (e) => {
   const mx = getCanvasMX(e);
   const my = getCanvasMY(e);
-  // 找到点击的轨道
   let clickedTrack = null;
   TRACK_ORDER.forEach(function(track, ti) {
     const y = 20 + ti * TRACK_H;
@@ -3627,7 +3623,6 @@ timelineTracks.addEventListener('dblclick', (e) => {
   if (!clickedTrack) return;
   state.selectedTrack = clickedTrack;
   const t = canvasXToTime(mx);
-  // 检查点击的是否是空白（没有片段）
   const occupied = state.segments.some(function(seg) {
     return seg.type === clickedTrack && t >= seg.start && t <= seg.end;
   });
@@ -3678,10 +3673,12 @@ timelineTracks.addEventListener('mousedown', (e) => {
       if (my >= ty && my <= ty + TRACK_H) clickedTrack = track;
     });
     if (clickedTrack) {
+      // Clicked on a track row: select that track, don't seek
       state.selectedTrack = clickedTrack;
+    } else {
+      // Clicked on ruler or outside tracks: seek
+      seekTo(Math.max(0, Math.min(t, state.audioDuration)));
     }
-    // Seek
-    seekTo(Math.max(0, Math.min(t, state.audioDuration)));
   }
   drawTimeline();
 });
@@ -4613,7 +4610,9 @@ function seekTo(t) {
 }
 
 function updatePlayhead() {
-  const waveW = document.getElementById('waveformCanvas').width;
+  const waveCanvas = document.getElementById('waveformCanvas');
+  // Use CSS rendered width, not canvas pixel width
+  const waveW = waveCanvas.getBoundingClientRect().width;
   const pct = state.audioDuration > 0 ? state.currentTime / state.audioDuration : 0;
   document.getElementById('playhead').style.left = (pct * waveW) + 'px';
 }
