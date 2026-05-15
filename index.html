@@ -1770,7 +1770,7 @@
 
         <!-- Timeline canvas -->
         <div style="position:relative;">
-          <div class="timeline-tracks">
+          <div class="timeline-tracks" id="mainTimelineTracks">
             <canvas id="timelineCanvas"></canvas>
           </div>
           <!-- Sticky track labels: stays on left while scrolling -->
@@ -3588,7 +3588,7 @@ function drawTimeline() {
 
 // Timeline mouse interaction
 const timelineCanvas = document.getElementById('timelineCanvas');
-const timelineTracks = document.querySelector('.timeline-tracks');
+const timelineTracks = document.getElementById('mainTimelineTracks');
 
 function getCanvasMX(e) {
   // Returns X in canvas pixel coordinates (same space as drawTimeline uses)
@@ -3780,7 +3780,7 @@ function addSegment(type, startTime) {
   state.segments.sort((a, b) => a.start - b.start);
   state.selectedSeg = state.segments.findIndex(s => s.start === t && s.type === vowelType);
   updateSelectedInfo();
-  drawTimeline();
+  updateTrackOrder(); // ensure new track type is visible
 }
 
 // ==================== EMOTION ====================
