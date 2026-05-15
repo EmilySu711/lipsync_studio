@@ -5116,7 +5116,7 @@ async function loadProject(input) {
     // ────────────────────────────────────────────────────────────────────
 
     // Restore images
-    const imgKeys = ['idle','a','i','u','e','o','open'];
+    const imgKeys = ['idle','a','i','u','e','o','open','schwa','ae','uu','oo','w','f','th','m'];
     for (const k of imgKeys) {
       if (p.images[k]) {
         await loadImage(p.images[k]);
